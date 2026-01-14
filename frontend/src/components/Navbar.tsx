@@ -3,18 +3,25 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  Home,
-  Calendar,
-  Heart,
-  User,
-  Store,
-  Menu,
-  X,
-  LogOut,
-  Search,
-} from "lucide-react";
+  faHouse,
+  faCalendarDays,
+  faHeart,
+  faUser,
+  faStore,
+  faBars,
+  faXmark,
+  faRightFromBracket,
+} from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "@/context/AuthContext";
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof faHouse;
+  authRequired?: boolean;
+}
 
 export function Navbar() {
   const pathname = usePathname();
@@ -23,16 +30,16 @@ export function Navbar() {
 
   const isOwner = user?.role === "OWNER";
 
-  const navItems = [
-    { href: "/", label: "Inicio", icon: Home },
-    { href: "/mis-citas", label: "Mis Citas", icon: Calendar, authRequired: true },
-    { href: "/favoritos", label: "Favoritos", icon: Heart, authRequired: true },
-    { href: "/perfil", label: "Perfil", icon: User, authRequired: true },
+  const navItems: NavItem[] = [
+    { href: "/", label: "Inicio", icon: faHouse },
+    { href: "/mis-citas", label: "Mis Citas", icon: faCalendarDays, authRequired: true },
+    { href: "/favoritos", label: "Favoritos", icon: faHeart, authRequired: true },
+    { href: "/perfil", label: "Perfil", icon: faUser, authRequired: true },
   ];
 
-  // Add "Mi Negocio" only for owners
+  // Agregar "Mi Negocio" solo para owners
   if (isOwner) {
-    navItems.push({ href: "/mi-negocio", label: "Mi Negocio", icon: Store, authRequired: true });
+    navItems.push({ href: "/mi-negocio", label: "Mi Negocio", icon: faStore, authRequired: true });
   }
 
   const handleLogout = async () => {
@@ -40,29 +47,21 @@ export function Navbar() {
     setIsMobileMenuOpen(false);
   };
 
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/95 backdrop-blur-md border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <nav className="navbar">
+      <div className="navbar-container">
+        <div className="navbar-content">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold text-white tracking-wider">BOOKHUB</span>
+          <Link href="/" className="navbar-logo">
+            <span className="navbar-logo-text">BOOKHUB</span>
           </Link>
 
-          {/* Search bar - Desktop */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-              <input
-                type="text"
-                placeholder="Buscar establecimientos..."
-                className="w-full h-10 pl-10 pr-4 bg-neutral-900 border border-white/10 rounded-full text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-white/20 transition-colors"
-              />
-            </div>
-          </div>
-
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="navbar-desktop">
             {navItems.map((item) => {
               if (item.authRequired && !isAuthenticated) return null;
               const isActive = pathname === item.href;
@@ -70,31 +69,21 @@ export function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    isActive
-                      ? "bg-white text-black"
-                      : "text-neutral-400 hover:text-white hover:bg-white/5"
-                  }`}
+                  className={`navbar-link ${isActive ? "navbar-link-active" : ""}`}
                 >
-                  <item.icon className="w-4 h-4" />
+                  <FontAwesomeIcon icon={item.icon} className="navbar-link-icon" />
                   <span>{item.label}</span>
                 </Link>
               );
             })}
 
             {isAuthenticated ? (
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-neutral-400 hover:text-white hover:bg-white/5 transition-all ml-2"
-              >
-                <LogOut className="w-4 h-4" />
+              <button onClick={handleLogout} className="navbar-link navbar-logout">
+                <FontAwesomeIcon icon={faRightFromBracket} className="navbar-link-icon" />
                 <span>Salir</span>
               </button>
             ) : (
-              <Link
-                href="/login"
-                className="flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg text-sm font-medium hover:bg-neutral-200 transition-all ml-2"
-              >
+              <Link href="/login" className="navbar-login-btn">
                 Iniciar Sesión
               </Link>
             )}
@@ -103,29 +92,21 @@ export function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-neutral-400 hover:text-white transition-colors"
+            className="navbar-mobile-toggle"
+            aria-label={isMobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
           >
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            <FontAwesomeIcon
+              icon={isMobileMenuOpen ? faXmark : faBars}
+              className="navbar-mobile-toggle-icon"
+            />
           </button>
         </div>
       </div>
 
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-[#0a0a0a] border-t border-white/10">
-          {/* Mobile Search */}
-          <div className="p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-              <input
-                type="text"
-                placeholder="Buscar establecimientos..."
-                className="w-full h-10 pl-10 pr-4 bg-neutral-900 border border-white/10 rounded-full text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-white/20 transition-colors"
-              />
-            </div>
-          </div>
-
-          <div className="px-4 pb-4 space-y-1">
+        <div className="navbar-mobile">
+          <div className="navbar-mobile-links">
             {navItems.map((item) => {
               if (item.authRequired && !isAuthenticated) return null;
               const isActive = pathname === item.href;
@@ -133,33 +114,22 @@ export function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                    isActive
-                      ? "bg-white text-black"
-                      : "text-neutral-400 hover:text-white hover:bg-white/5"
-                  }`}
+                  onClick={closeMobileMenu}
+                  className={`navbar-mobile-link ${isActive ? "navbar-mobile-link-active" : ""}`}
                 >
-                  <item.icon className="w-5 h-5" />
+                  <FontAwesomeIcon icon={item.icon} className="navbar-mobile-link-icon" />
                   <span>{item.label}</span>
                 </Link>
               );
             })}
 
             {isAuthenticated ? (
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-neutral-400 hover:text-white hover:bg-white/5 transition-all w-full"
-              >
-                <LogOut className="w-5 h-5" />
+              <button onClick={handleLogout} className="navbar-mobile-link navbar-mobile-logout">
+                <FontAwesomeIcon icon={faRightFromBracket} className="navbar-mobile-link-icon" />
                 <span>Cerrar Sesión</span>
               </button>
             ) : (
-              <Link
-                href="/login"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-white text-black rounded-lg text-sm font-medium hover:bg-neutral-200 transition-all"
-              >
+              <Link href="/login" onClick={closeMobileMenu} className="navbar-mobile-login-btn">
                 Iniciar Sesión
               </Link>
             )}
