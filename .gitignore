@@ -1,0 +1,51 @@
+# ==========================================
+# HairHub 2.0 - Global .gitignore
+# ==========================================
+
+# ==== IDE - IntelliJ IDEA ====
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# ==== IDE - VS Code ====
+.vscode/
+
+# ==== IDE - Eclipse/STS ====
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# ==== IDE - NetBeans ====
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# ==== OS Generated ====
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ==== Logs ====
+*.log
+logs/
+compile_log.txt
+
+# ==== Environment Variables ====
+.env
+.env.local
+.env.*.local
+*.env
+
+# ==== Docker ====
+docker-compose.override.yml

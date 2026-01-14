@@ -14,10 +14,15 @@ HairHub es un sistema de gestión de citas que funciona como una red social de s
 
 ```
 hairhub1.0/
-├── backend/          # Spring Boot API (Java 21)
-├── frontend/         # Next.js 16 (React + TypeScript)
-├── legacy/           # Proyecto anterior (archivado)
-└── docker-compose.yml
+├── backend/           # Spring Boot API (Java 21)
+│   ├── src/main/java/ # Código fuente
+│   ├── src/test/      # Tests unitarios
+│   └── pom.xml        # Dependencias Maven
+├── frontend/          # Next.js 16 (React + TypeScript)
+│   ├── src/app/       # App Router (páginas)
+│   ├── src/components/# Componentes reutilizables
+│   └── src/lib/       # Utilidades y API client
+└── docker-compose.yml # PostgreSQL + pgAdmin
 ```
 
 ## 🚀 Tecnologías
