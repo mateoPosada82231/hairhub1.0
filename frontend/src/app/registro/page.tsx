@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
+import { PublicOnlyRoute } from "@/components/ProtectedRoute";
 import "@/styles/auth.css";
 
-export default function RegisterPage() {
+type RegisterRole = "CLIENT" | "OWNER";
+
+function RegisterPageContent() {
   const router = useRouter();
   
   const [formData, setFormData] = useState({
@@ -17,6 +20,7 @@ export default function RegisterPage() {
     firstName: "",
     lastName: "",
     phone: "",
+    role: "CLIENT" as RegisterRole,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -24,7 +28,7 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -50,7 +54,7 @@ export default function RegisterPage() {
       password: formData.password,
       fullName: `${formData.firstName} ${formData.lastName}`,
       phone: formData.phone,
-      role: "CLIENT" as const,
+      role: formData.role,
     };
 
     try {
@@ -76,6 +80,31 @@ export default function RegisterPage() {
         <h2 className="register-title">Registro</h2>
 
         <form onSubmit={handleSubmit} className="register-form">
+          {/* Selección de tipo de cuenta */}
+          <div className="mb-4">
+            <label htmlFor="role" className="form-label">
+              Tipo de cuenta
+            </label>
+            <div className="role-selector">
+              <button
+                type="button"
+                className={`role-option ${formData.role === "CLIENT" ? "role-option-active" : ""}`}
+                onClick={() => setFormData({ ...formData, role: "CLIENT" })}
+              >
+                <span className="role-option-title">Cliente</span>
+                <span className="role-option-desc">Quiero reservar citas</span>
+              </button>
+              <button
+                type="button"
+                className={`role-option ${formData.role === "OWNER" ? "role-option-active" : ""}`}
+                onClick={() => setFormData({ ...formData, role: "OWNER" })}
+              >
+                <span className="role-option-title">Dueño de Negocio</span>
+                <span className="role-option-desc">Quiero gestionar mi negocio</span>
+              </button>
+            </div>
+          </div>
+
           <div className="mb-3">
             <label htmlFor="firstName" className="form-label">
               Nombre
@@ -220,5 +249,13 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <PublicOnlyRoute>
+      <RegisterPageContent />
+    </PublicOnlyRoute>
   );
 }

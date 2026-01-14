@@ -7,31 +7,23 @@ import {
   faStar,
   faHeart as faHeartSolid,
   faLocationDot,
+  faScissors,
 } from "@fortawesome/free-solid-svg-icons";
 import { faHeart as faHeartRegular } from "@fortawesome/free-regular-svg-icons";
+import type { BusinessSummary } from "@/types";
 
-export interface Establishment {
-  id: number;
-  name: string;
-  category: string;
-  image: string;
-  location: string;
-  rating: number;
-  reviews: number;
-  priceRange: string;
-  openNow: boolean;
-  distance: string;
-}
+// Imagen por defecto si no hay cover image
+const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=400&h=300&fit=crop";
 
 interface EstablishmentCardProps {
-  establishment: Establishment;
+  business: BusinessSummary;
   isFavorite: boolean;
   onToggleFavorite: (id: number) => void;
   onViewDetails: (id: number) => void;
 }
 
 function EstablishmentCardComponent({
-  establishment,
+  business,
   isFavorite,
   onToggleFavorite,
   onViewDetails,
@@ -39,22 +31,25 @@ function EstablishmentCardComponent({
   const handleFavoriteClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      onToggleFavorite(establishment.id);
+      onToggleFavorite(business.id);
     },
-    [establishment.id, onToggleFavorite]
+    [business.id, onToggleFavorite]
   );
 
   const handleViewDetails = useCallback(() => {
-    onViewDetails(establishment.id);
-  }, [establishment.id, onViewDetails]);
+    onViewDetails(business.id);
+  }, [business.id, onViewDetails]);
+
+  const rating = business.average_rating ?? 0;
+  const imageUrl = business.cover_image_url || DEFAULT_IMAGE;
 
   return (
     <article className="establishment-card">
       {/* Image Container */}
       <div className="establishment-image-container">
         <Image
-          src={establishment.image}
-          alt={establishment.name}
+          src={imageUrl}
+          alt={business.name}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="establishment-image"
@@ -74,45 +69,48 @@ function EstablishmentCardComponent({
           />
         </button>
 
-        {/* Open Status Badge */}
+        {/* Category Badge */}
         <div className="status-badge-container">
-          <span
-            className={`status-badge ${
-              establishment.openNow ? "status-badge-open" : "status-badge-closed"
-            }`}
-          >
-            {establishment.openNow ? "Abierto" : "Cerrado"}
+          <span className="status-badge status-badge-category">
+            {business.category_display}
           </span>
         </div>
 
-        {/* Price Range Badge */}
+        {/* Services Count Badge */}
         <div className="price-badge-container">
-          <span className="price-badge">{establishment.priceRange}</span>
+          <span className="price-badge">
+            <FontAwesomeIcon icon={faScissors} className="mr-1" />
+            {business.services_count} servicios
+          </span>
         </div>
       </div>
 
       {/* Content */}
       <div className="establishment-content">
         <div className="establishment-header">
-          <h3 className="establishment-name">{establishment.name}</h3>
+          <h3 className="establishment-name">{business.name}</h3>
           <div className="establishment-rating">
             <FontAwesomeIcon icon={faStar} className="rating-star" />
-            <span className="rating-value">{establishment.rating}</span>
-            <span className="rating-count">({establishment.reviews})</span>
+            <span className="rating-value">{rating.toFixed(1)}</span>
+            <span className="rating-count">({business.total_reviews})</span>
           </div>
         </div>
 
         <div className="establishment-location">
           <FontAwesomeIcon icon={faLocationDot} className="location-icon" />
-          <span>{establishment.location}</span>
-          <span className="location-separator">•</span>
-          <span>{establishment.distance}</span>
+          <span>{business.address}</span>
+          {business.city && (
+            <>
+              <span className="location-separator">•</span>
+              <span>{business.city}</span>
+            </>
+          )}
         </div>
 
         <button
           onClick={handleViewDetails}
           className="establishment-button"
-          aria-label={`Ver disponibilidad de ${establishment.name}`}
+          aria-label={`Ver disponibilidad de ${business.name}`}
         >
           Ver disponibilidad
         </button>

@@ -1,131 +1,100 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBookOpen } from "@fortawesome/free-solid-svg-icons";
+import { faBookOpen, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { Navbar } from "@/components/Navbar";
 import { SearchBar } from "@/components/SearchBar";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { EstablishmentGrid } from "@/components/EstablishmentGrid";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import type { Establishment } from "@/components/EstablishmentCard";
+import { api } from "@/lib/api";
+import type { BusinessSummary, BusinessCategory, CategoryOption } from "@/types";
 import "@/styles/home.css";
 
-// Datos mock de establecimientos
-const mockEstablishments: Establishment[] = [
-  {
-    id: 1,
-    name: "La Casa del Chef",
-    category: "restaurant",
-    image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
-    location: "Centro, Medellín",
-    rating: 4.8,
-    reviews: 234,
-    priceRange: "$$",
-    openNow: true,
-    distance: "0.8 km",
-  },
-  {
-    id: 2,
-    name: "Estilo & Glamour",
-    category: "salon",
-    image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop",
-    location: "El Poblado, Medellín",
-    rating: 4.9,
-    reviews: 189,
-    priceRange: "$$$",
-    openNow: true,
-    distance: "1.2 km",
-  },
-  {
-    id: 3,
-    name: "FitLife Gym",
-    category: "gym",
-    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop",
-    location: "Laureles, Medellín",
-    rating: 4.7,
-    reviews: 456,
-    priceRange: "$$",
-    openNow: false,
-    distance: "2.1 km",
-  },
-  {
-    id: 4,
-    name: "Zen Spa & Wellness",
-    category: "spa",
-    image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=300&fit=crop",
-    location: "Envigado",
-    rating: 4.9,
-    reviews: 312,
-    priceRange: "$$$",
-    openNow: true,
-    distance: "3.5 km",
-  },
-  {
-    id: 5,
-    name: "Café del Parque",
-    category: "cafe",
-    image: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&h=300&fit=crop",
-    location: "Provenza, Medellín",
-    rating: 4.6,
-    reviews: 178,
-    priceRange: "$",
-    openNow: true,
-    distance: "0.5 km",
-  },
-  {
-    id: 6,
-    name: "The Rooftop Bar",
-    category: "bar",
-    image: "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=400&h=300&fit=crop",
-    location: "El Poblado, Medellín",
-    rating: 4.5,
-    reviews: 267,
-    priceRange: "$$$",
-    openNow: false,
-    distance: "1.8 km",
-  },
-];
-
 function HomePageContent() {
+  const router = useRouter();
+  
   // Estados
   const [searchQuery, setSearchQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [favorites, setFavorites] = useState<number[]>([]);
+  
+  // Estados de datos
+  const [businesses, setBusinesses] = useState<BusinessSummary[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Paginación
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
-  // Filtrar establecimientos usando useMemo para optimizar rendimiento
-  const filteredEstablishments = useMemo(() => {
-    return mockEstablishments.filter((est) => {
-      const matchesCategory =
-        selectedCategory === "all" || est.category === selectedCategory;
-      const matchesSearch =
-        searchQuery === "" ||
-        est.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        est.location.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesLocation =
-        locationQuery === "" ||
-        est.location.toLowerCase().includes(locationQuery.toLowerCase());
-      return matchesCategory && matchesSearch && matchesLocation;
-    });
-  }, [searchQuery, locationQuery, selectedCategory]);
+  // Cargar categorías al montar
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const cats = await api.getCategories();
+        setCategories(cats);
+      } catch (err) {
+        console.error("Error loading categories:", err);
+      }
+    };
+    loadCategories();
+  }, []);
 
-  // Handlers con useCallback para evitar re-renders innecesarios
+  // Cargar negocios
+  const loadBusinesses = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.searchBusinesses({
+        query: searchQuery || undefined,
+        category: selectedCategory !== "all" ? (selectedCategory as BusinessCategory) : undefined,
+        city: locationQuery || undefined,
+        page,
+        size: 12,
+      });
+      setBusinesses(response.content);
+      setTotalPages(response.total_pages);
+    } catch (err) {
+      console.error("Error loading businesses:", err);
+      setError("Error al cargar los establecimientos. Por favor, intenta de nuevo.");
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery, locationQuery, selectedCategory, page]);
+
+  // Cargar negocios al cambiar filtros
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadBusinesses();
+    }, 300); // Debounce de 300ms
+    
+    return () => clearTimeout(timer);
+  }, [loadBusinesses]);
+
+  // Handlers
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
+    setPage(0);
   }, []);
 
   const handleLocationChange = useCallback((value: string) => {
     setLocationQuery(value);
+    setPage(0);
   }, []);
 
   const handleSearch = useCallback(() => {
-    // Aquí se podría implementar búsqueda en API
-    console.log("Searching:", { searchQuery, locationQuery });
-  }, [searchQuery, locationQuery]);
+    setPage(0);
+    loadBusinesses();
+  }, [loadBusinesses]);
 
   const handleCategoryChange = useCallback((categoryId: string) => {
     setSelectedCategory(categoryId);
+    setPage(0);
   }, []);
 
   const handleToggleFavorite = useCallback((id: number) => {
@@ -135,12 +104,11 @@ function HomePageContent() {
   }, []);
 
   const handleViewDetails = useCallback((id: number) => {
-    // Aquí se implementaría la navegación al detalle
-    console.log("View details:", id);
-  }, []);
+    router.push(`/negocio/${id}`);
+  }, [router]);
 
   const handleFilterClick = useCallback(() => {
-    // Aquí se implementaría la apertura del modal de filtros
+    // TODO: Implementar modal de filtros avanzados
     console.log("Open filters");
   }, []);
 
@@ -159,8 +127,7 @@ function HomePageContent() {
                 <span className="home-title-accent">lugares</span>
               </h1>
               <p className="home-subtitle">
-                Restaurantes, spas, gimnasios, salones de belleza y más. Todo en
-                un solo lugar.
+                Barberías, spas, salones de belleza y más. Todo en un solo lugar.
               </p>
             </div>
 
@@ -177,18 +144,71 @@ function HomePageContent() {
             <CategoryFilter
               selectedCategory={selectedCategory}
               onCategoryChange={handleCategoryChange}
+              categories={categories}
             />
           </div>
         </section>
 
+        {/* Estado de carga */}
+        {loading && (
+          <div className="home-loading">
+            <FontAwesomeIcon icon={faSpinner} spin className="home-loading-icon" />
+            <p>Cargando establecimientos...</p>
+          </div>
+        )}
+
+        {/* Mensaje de error */}
+        {error && !loading && (
+          <div className="home-error">
+            <p>{error}</p>
+            <button onClick={loadBusinesses} className="home-retry-btn">
+              Reintentar
+            </button>
+          </div>
+        )}
+
         {/* Grid de establecimientos */}
-        <EstablishmentGrid
-          establishments={filteredEstablishments}
-          favorites={favorites}
-          onToggleFavorite={handleToggleFavorite}
-          onViewDetails={handleViewDetails}
-          onFilterClick={handleFilterClick}
-        />
+        {!loading && !error && (
+          <>
+            <EstablishmentGrid
+              businesses={businesses}
+              favorites={favorites}
+              onToggleFavorite={handleToggleFavorite}
+              onViewDetails={handleViewDetails}
+              onFilterClick={handleFilterClick}
+            />
+
+            {/* Paginación */}
+            {totalPages > 1 && (
+              <div className="home-pagination">
+                <button
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="pagination-btn"
+                >
+                  Anterior
+                </button>
+                <span className="pagination-info">
+                  Página {page + 1} de {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="pagination-btn"
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
+
+            {/* Mensaje de vacío */}
+            {businesses.length === 0 && (
+              <div className="home-empty">
+                <p>No se encontraron establecimientos con los filtros seleccionados.</p>
+              </div>
+            )}
+          </>
+        )}
       </main>
 
       {/* Footer */}

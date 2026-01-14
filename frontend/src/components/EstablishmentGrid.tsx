@@ -3,10 +3,11 @@
 import { memo, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilter, faSearch } from "@fortawesome/free-solid-svg-icons";
-import { EstablishmentCard, type Establishment } from "./EstablishmentCard";
+import { EstablishmentCard } from "./EstablishmentCard";
+import type { BusinessSummary } from "@/types";
 
 interface EstablishmentGridProps {
-  establishments: Establishment[];
+  businesses: BusinessSummary[];
   favorites: number[];
   onToggleFavorite: (id: number) => void;
   onViewDetails: (id: number) => void;
@@ -14,7 +15,7 @@ interface EstablishmentGridProps {
 }
 
 function EstablishmentGridComponent({
-  establishments,
+  businesses,
   favorites,
   onToggleFavorite,
   onViewDetails,
@@ -31,7 +32,7 @@ function EstablishmentGridComponent({
         {/* Results Header */}
         <div className="results-header">
           <p className="results-count">
-            <span className="results-number">{establishments.length}</span> lugares
+            <span className="results-number">{businesses.length}</span> lugares
             encontrados
           </p>
           <button
@@ -45,13 +46,13 @@ function EstablishmentGridComponent({
         </div>
 
         {/* Grid */}
-        {establishments.length > 0 ? (
+        {businesses.length > 0 ? (
           <div className="establishments-grid">
-            {establishments.map((establishment) => (
+            {businesses.map((business) => (
               <EstablishmentCard
-                key={establishment.id}
-                establishment={establishment}
-                isFavorite={isFavorite(establishment.id)}
+                key={business.id}
+                business={business}
+                isFavorite={isFavorite(business.id)}
                 onToggleFavorite={onToggleFavorite}
                 onViewDetails={onViewDetails}
               />

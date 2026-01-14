@@ -5,16 +5,11 @@ export type UserRole = "OWNER" | "WORKER" | "CLIENT";
 export interface User {
     id: number;
     email: string;
+    fullName: string;
     role: UserRole;
     enabled: boolean;
     createdAt: string;
-    profile?: Profile;
-}
-
-export interface Profile {
-    fullName: string;
     avatarUrl?: string;
-    bio?: string;
     phone?: string;
 }
 
@@ -39,41 +34,73 @@ export const CATEGORY_LABELS: Record<BusinessCategory, string> = {
     OTHER: "Otro",
 };
 
-export const CATEGORY_ICONS: Record<BusinessCategory, string> = {
-    BARBERSHOP: "✂️",
-    HAIR_SALON: "💇‍♀️",
-    NAIL_SALON: "💅",
-    SPA: "🧖",
-    CAR_WASH: "🚗",
-    PET_GROOMING: "🐕",
-    TATTOO_STUDIO: "🎨",
-    OTHER: "📍",
-};
+// Business Summary (for lists/search)
+export interface BusinessSummary {
+    id: number;
+    name: string;
+    category: BusinessCategory;
+    category_display: string;
+    address: string;
+    city: string;
+    cover_image_url?: string;
+    average_rating?: number;
+    total_reviews: number;
+    services_count: number;
+}
 
+// Full Business (for detail view)
 export interface Business {
     id: number;
     name: string;
     category: BusinessCategory;
+    category_display: string;
     description?: string;
-    address?: string;
-    city?: string;
+    address: string;
+    city: string;
     phone?: string;
-    coverImageUrl?: string;
+    cover_image_url?: string;
     active: boolean;
-    averageRating?: number;
-    totalReviews?: number;
+    average_rating?: number;
+    total_reviews: number;
+    owner_id: number;
+    owner_name: string;
+    services_count: number;
+    workers_count: number;
+    created_at: string;
     services?: Service[];
-    galleryImages?: string[];
+    workers?: Worker[];
+    gallery_images?: string[];
 }
 
 export interface Service {
     id: number;
     name: string;
     description?: string;
-    durationMinutes: number;
+    duration_minutes: number;
     price: number;
-    imageUrl?: string;
+    image_url?: string;
     active: boolean;
+}
+
+export interface Worker {
+    id: number;
+    user_id: number;
+    full_name: string;
+    email?: string;
+    avatar_url?: string;
+    position?: string;
+    active: boolean;
+    business_id?: number;
+    business_name?: string;
+    created_at?: string;
+    schedules?: WorkerSchedule[];
+}
+
+export interface WorkerSchedule {
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    is_available: boolean;
 }
 
 export type AppointmentStatus =
@@ -85,21 +112,110 @@ export type AppointmentStatus =
 
 export interface Appointment {
     id: number;
-    client: User;
-    worker: Worker;
-    service: Service;
-    startTime: string;
-    endTime: string;
+    client_id: number;
+    client_name: string;
+    client_phone?: string;
+    worker_id: number;
+    worker_name: string;
+    service_id: number;
+    service_name: string;
+    service_price?: number;
+    service_duration?: number;
+    business_id: number;
+    business_name: string;
+    business_address?: string;
+    start_time: string; // ISO datetime string
+    end_time: string; // ISO datetime string
     status: AppointmentStatus;
-    clientNotes?: string;
-    cancellationReason?: string;
-    createdAt: string;
+    client_notes?: string;
+    notes?: string; // alias for client_notes
+    cancellation_reason?: string;
+    total_price?: number;
+    created_at: string;
+    has_review?: boolean;
 }
 
-export interface Worker {
-    id: number;
-    user: User;
-    business: Business;
+// API Pagination Response
+export interface PageResponse<T> {
+    content: T[];
+    total_elements: number;
+    total_pages: number;
+    page: number;
+    size: number;
+}
+
+// Category from API
+export interface CategoryOption {
+    value: string;
+    label: string;
+}
+
+// Request types
+export interface CreateBusinessRequest {
+    name: string;
+    category: BusinessCategory;
+    description?: string;
+    address: string;
+    city: string;
+    phone?: string;
+    cover_image_url?: string;
+}
+
+export interface UpdateBusinessRequest {
+    name?: string;
+    description?: string;
+    address?: string;
+    city?: string;
+    phone?: string;
+    cover_image_url?: string;
+    active?: boolean;
+}
+
+export interface CreateServiceRequest {
+    name: string;
+    description?: string;
+    duration_minutes: number;
+    price: number;
+    image_url?: string;
+}
+
+export interface UpdateServiceRequest {
+    name?: string;
+    description?: string;
+    duration_minutes?: number;
+    price?: number;
+    image_url?: string;
+    active?: boolean;
+}
+
+export interface CreateWorkerRequest {
+    email: string;
+    full_name: string;
     position?: string;
-    active: boolean;
+}
+
+export interface CreateAppointmentRequest {
+    business_id: number;
+    worker_id: number;
+    service_id: number;
+    start_time: string;
+    client_notes?: string;
+}
+
+export interface UpdateAppointmentRequest {
+    status?: AppointmentStatus;
+}
+
+// Availability Response
+export interface AvailabilityResponse {
+    worker_id: number;
+    worker_name: string;
+    date: string;
+    available_slots: TimeSlot[];
+}
+
+export interface TimeSlot {
+    start_time: string;
+    end_time: string;
+    available: boolean;
 }

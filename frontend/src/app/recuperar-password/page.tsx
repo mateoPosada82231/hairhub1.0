@@ -3,12 +3,12 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ApiError } from "@/lib/api";
+import { PublicOnlyRoute } from "@/components/ProtectedRoute";
 import "@/styles/auth.css";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8082";
 
-export default function RecoverPasswordPage() {
+function RecoverPasswordContent() {
   const router = useRouter();
   
   const [email, setEmail] = useState("");
@@ -43,7 +43,7 @@ export default function RecoverPasswordPage() {
         const errorData = await response.json().catch(() => ({}));
         setError(errorData.message || "Error al procesar la solicitud");
       }
-    } catch (err) {
+    } catch {
       // Si hay error de conexión o el endpoint no existe
       setError("Esta funcionalidad estará disponible próximamente");
     } finally {
@@ -109,5 +109,13 @@ export default function RecoverPasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RecoverPasswordPage() {
+  return (
+    <PublicOnlyRoute>
+      <RecoverPasswordContent />
+    </PublicOnlyRoute>
   );
 }

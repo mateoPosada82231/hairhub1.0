@@ -4,39 +4,38 @@ import { memo, useCallback } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faMagnifyingGlass,
-  faUtensils,
   faScissors,
-  faDumbbell,
   faSpa,
-  faMugHot,
-  faMartiniGlass,
+  faPaw,
+  faCar,
+  faPaintBrush,
+  faStore,
 } from "@fortawesome/free-solid-svg-icons";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import type { CategoryOption } from "@/types";
 
-export interface Category {
-  id: string;
-  label: string;
-  icon: IconDefinition;
-}
-
-export const categories: Category[] = [
-  { id: "all", label: "Todos", icon: faMagnifyingGlass },
-  { id: "restaurant", label: "Restaurantes", icon: faUtensils },
-  { id: "salon", label: "Salones", icon: faScissors },
-  { id: "gym", label: "Gimnasios", icon: faDumbbell },
-  { id: "spa", label: "Spas", icon: faSpa },
-  { id: "cafe", label: "Cafeterías", icon: faMugHot },
-  { id: "bar", label: "Bares", icon: faMartiniGlass },
-];
+// Iconos para cada categoría del backend
+const categoryIcons: Record<string, IconDefinition> = {
+  BARBERSHOP: faScissors,
+  HAIR_SALON: faScissors,
+  NAIL_SALON: faPaintBrush,
+  SPA: faSpa,
+  CAR_WASH: faCar,
+  PET_GROOMING: faPaw,
+  TATTOO_STUDIO: faPaintBrush,
+  OTHER: faStore,
+};
 
 interface CategoryFilterProps {
   selectedCategory: string;
   onCategoryChange: (categoryId: string) => void;
+  categories: CategoryOption[];
 }
 
 function CategoryFilterComponent({
   selectedCategory,
   onCategoryChange,
+  categories,
 }: CategoryFilterProps) {
   const handleClick = useCallback(
     (categoryId: string) => {
@@ -47,17 +46,34 @@ function CategoryFilterComponent({
 
   return (
     <div className="category-filter">
+      {/* Botón "Todos" */}
+      <button
+        onClick={() => handleClick("all")}
+        className={`category-button ${
+          selectedCategory === "all" ? "category-button-active" : ""
+        }`}
+        aria-pressed={selectedCategory === "all"}
+        aria-label="Mostrar todos"
+      >
+        <FontAwesomeIcon icon={faMagnifyingGlass} className="category-icon" />
+        <span>Todos</span>
+      </button>
+      
+      {/* Categorías del backend */}
       {categories.map((cat) => (
         <button
-          key={cat.id}
-          onClick={() => handleClick(cat.id)}
+          key={cat.value}
+          onClick={() => handleClick(cat.value)}
           className={`category-button ${
-            selectedCategory === cat.id ? "category-button-active" : ""
+            selectedCategory === cat.value ? "category-button-active" : ""
           }`}
-          aria-pressed={selectedCategory === cat.id}
+          aria-pressed={selectedCategory === cat.value}
           aria-label={`Filtrar por ${cat.label}`}
         >
-          <FontAwesomeIcon icon={cat.icon} className="category-icon" />
+          <FontAwesomeIcon 
+            icon={categoryIcons[cat.value] || faStore} 
+            className="category-icon" 
+          />
           <span>{cat.label}</span>
         </button>
       ))}

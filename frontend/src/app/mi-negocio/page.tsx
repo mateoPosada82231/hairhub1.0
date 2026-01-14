@@ -1,296 +1,800 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { 
-  Building2, 
-  Calendar, 
-  Users, 
-  TrendingUp, 
-  Settings, 
-  Clock,
-  DollarSign,
-  Star,
-  ChevronRight,
-  Plus
-} from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faStore,
+  faCalendarDays,
+  faUsers,
+  faStar,
+  faPlus,
+  faGear,
+  faPen,
+  faTrash,
+  faClock,
+  faSpinner,
+  faScissors,
+  faDollarSign,
+} from "@fortawesome/free-solid-svg-icons";
 import { Navbar } from "@/components/Navbar";
-import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { api } from "@/lib/api";
+import type { BusinessSummary, Business, Service, Worker } from "@/types";
+import "@/styles/mi-negocio.css";
 
-const fadeIn = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
+// Componente para crear/editar negocio
+function BusinessForm({
+  business,
+  onSave,
+  onCancel,
+}: {
+  business?: Business | null;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: business?.name || "",
+    category: business?.category || "BARBERSHOP",
+    description: business?.description || "",
+    address: business?.address || "",
+    city: business?.city || "",
+    phone: business?.phone || "",
+    cover_image_url: business?.cover_image_url || "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-// Mock business data
-const mockBusiness = {
-  name: "Estilo & Glamour",
-  category: "Salón de Belleza",
-  image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop",
-  rating: 4.9,
-  reviews: 189,
-  todayAppointments: 8,
-  weeklyRevenue: 2450000,
-  totalClients: 342,
-};
+    try {
+      if (business) {
+        await api.updateBusiness(business.id, formData);
+      } else {
+        await api.createBusiness(formData as any);
+      }
+      onSave();
+    } catch (err: any) {
+      setError(err.message || "Error al guardar el negocio");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-const stats = [
-  {
-    label: "Citas hoy",
-    value: mockBusiness.todayAppointments,
-    icon: Calendar,
-    color: "text-blue-400",
-    bgColor: "bg-blue-500/10",
-  },
-  {
-    label: "Ingresos semana",
-    value: `$${(mockBusiness.weeklyRevenue / 1000).toFixed(0)}k`,
-    icon: DollarSign,
-    color: "text-green-400",
-    bgColor: "bg-green-500/10",
-  },
-  {
-    label: "Clientes totales",
-    value: mockBusiness.totalClients,
-    icon: Users,
-    color: "text-purple-400",
-    bgColor: "bg-purple-500/10",
-  },
-  {
-    label: "Calificación",
-    value: mockBusiness.rating,
-    icon: Star,
-    color: "text-yellow-400",
-    bgColor: "bg-yellow-500/10",
-  },
-];
+  return (
+    <div className="modal-overlay">
+      <div className="modal-container">
+        <h2 className="modal-title">
+          {business ? "Editar Negocio" : "Nuevo Negocio"}
+        </h2>
 
-const quickActions = [
-  { label: "Gestionar citas", icon: Calendar, href: "#" },
-  { label: "Ver empleados", icon: Users, href: "#" },
-  { label: "Estadísticas", icon: TrendingUp, href: "#" },
-  { label: "Configuración", icon: Settings, href: "#" },
-];
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="form-group">
+            <label>Nombre del negocio</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+              placeholder="Mi Barbería"
+            />
+          </div>
 
-const todaySchedule = [
-  { time: "09:00", client: "María García", service: "Corte y color", status: "completed" },
-  { time: "10:30", client: "Ana Rodríguez", service: "Manicure", status: "completed" },
-  { time: "12:00", client: "Laura Pérez", service: "Peinado", status: "in-progress" },
-  { time: "14:00", client: "Carmen López", service: "Tratamiento capilar", status: "upcoming" },
-  { time: "15:30", client: "Sofia Martínez", service: "Corte", status: "upcoming" },
-];
+          <div className="form-group">
+            <label>Categoría</label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+            >
+              <option value="BARBERSHOP">Barbería</option>
+              <option value="HAIR_SALON">Salón de Belleza</option>
+              <option value="NAIL_SALON">Manicura/Pedicura</option>
+              <option value="SPA">Spa</option>
+              <option value="CAR_WASH">Autolavado</option>
+              <option value="PET_GROOMING">Peluquería de Mascotas</option>
+              <option value="TATTOO_STUDIO">Estudio de Tatuajes</option>
+              <option value="OTHER">Otro</option>
+            </select>
+          </div>
 
-export default function MiNegocioPage() {
-  const { user, isLoading } = useAuth();
-  const router = useRouter();
+          <div className="form-group">
+            <label>Descripción</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Describe tu negocio..."
+              rows={3}
+            />
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Dirección</label>
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                required
+                placeholder="Calle 123 #45-67"
+              />
+            </div>
+            <div className="form-group">
+              <label>Ciudad</label>
+              <input
+                type="text"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                required
+                placeholder="Medellín"
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Teléfono</label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="300 123 4567"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>URL de imagen de portada</label>
+            <input
+              type="url"
+              value={formData.cover_image_url}
+              onChange={(e) => setFormData({ ...formData, cover_image_url: e.target.value })}
+              placeholder="https://..."
+            />
+          </div>
+
+          {error && <div className="form-error">{error}</div>}
+
+          <div className="modal-actions">
+            <button type="button" onClick={onCancel} className="btn-secondary">
+              Cancelar
+            </button>
+            <button type="submit" disabled={loading} className="btn-primary">
+              {loading ? "Guardando..." : "Guardar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Componente para crear/editar servicio
+function ServiceForm({
+  businessId,
+  service,
+  onSave,
+  onCancel,
+}: {
+  businessId: number;
+  service?: Service | null;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: service?.name || "",
+    description: service?.description || "",
+    duration_minutes: service?.duration_minutes || 30,
+    price: service?.price || 0,
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (service) {
+        await api.updateService(businessId, service.id, formData);
+      } else {
+        await api.createService(businessId, formData);
+      }
+      onSave();
+    } catch (err: any) {
+      setError(err.message || "Error al guardar el servicio");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-container">
+        <h2 className="modal-title">
+          {service ? "Editar Servicio" : "Nuevo Servicio"}
+        </h2>
+
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="form-group">
+            <label>Nombre del servicio</label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+              placeholder="Corte de cabello"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Descripción</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Describe el servicio..."
+              rows={2}
+            />
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Duración (minutos)</label>
+              <input
+                type="number"
+                value={formData.duration_minutes}
+                onChange={(e) =>
+                  setFormData({ ...formData, duration_minutes: parseInt(e.target.value) || 0 })
+                }
+                required
+                min={5}
+                step={5}
+              />
+            </div>
+            <div className="form-group">
+              <label>Precio ($)</label>
+              <input
+                type="number"
+                value={formData.price}
+                onChange={(e) =>
+                  setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })
+                }
+                required
+                min={0}
+                step={1000}
+              />
+            </div>
+          </div>
+
+          {error && <div className="form-error">{error}</div>}
+
+          <div className="modal-actions">
+            <button type="button" onClick={onCancel} className="btn-secondary">
+              Cancelar
+            </button>
+            <button type="submit" disabled={loading} className="btn-primary">
+              {loading ? "Guardando..." : "Guardar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Componente para agregar trabajador
+function WorkerForm({
+  businessId,
+  onSave,
+  onCancel,
+}: {
+  businessId: number;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    email: "",
+    full_name: "",
+    position: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      await api.addWorker(businessId, formData);
+      onSave();
+    } catch (err: any) {
+      setError(err.message || "Error al agregar trabajador");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-container">
+        <h2 className="modal-title">Agregar Trabajador</h2>
+
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="form-group">
+            <label>Nombre completo</label>
+            <input
+              type="text"
+              value={formData.full_name}
+              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+              required
+              placeholder="Juan Pérez"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              required
+              placeholder="juan@email.com"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Cargo / Posición</label>
+            <input
+              type="text"
+              value={formData.position}
+              onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+              placeholder="Barbero Senior"
+            />
+          </div>
+
+          {error && <div className="form-error">{error}</div>}
+
+          <div className="modal-actions">
+            <button type="button" onClick={onCancel} className="btn-secondary">
+              Cancelar
+            </button>
+            <button type="submit" disabled={loading} className="btn-primary">
+              {loading ? "Agregando..." : "Agregar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function MiNegocioContent() {
+  // Estados principales
+  const [businesses, setBusinesses] = useState<BusinessSummary[]>([]);
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
+  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Estados de modales
+  const [showBusinessForm, setShowBusinessForm] = useState(false);
+  const [showServiceForm, setShowServiceForm] = useState(false);
+  const [showWorkerForm, setShowWorkerForm] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
+
+  // Tab activo
+  const [activeTab, setActiveTab] = useState<"overview" | "services" | "workers">("overview");
+
+  // Cargar detalles de un negocio
+  const loadBusinessDetails = useCallback(async (id: number) => {
+    try {
+      const [business, servicesData, workersData] = await Promise.all([
+        api.getBusinessById(id),
+        api.getServices(id),
+        api.getWorkers(id),
+      ]);
+      setSelectedBusiness(business);
+      setServices(servicesData);
+      setWorkers(workersData);
+    } catch (err: any) {
+      console.error("Error loading business details:", err);
+    }
+  }, []);
+
+  // Cargar mis negocios
+  const loadBusinesses = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.getMyBusinesses();
+      setBusinesses(data);
+      if (data.length > 0) {
+        loadBusinessDetails(data[0].id);
+      }
+    } catch (err: any) {
+      console.error("Error loading businesses:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [loadBusinessDetails]);
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login");
-    }
-    if (!isLoading && user && user.role !== "OWNER") {
-      router.push("/");
-    }
-  }, [user, isLoading, router]);
+    loadBusinesses();
+  }, [loadBusinesses]);
 
-  if (isLoading) {
+  // Handlers de formularios
+  const handleBusinessSaved = () => {
+    setShowBusinessForm(false);
+    loadBusinesses();
+  };
+
+  const handleServiceSaved = () => {
+    setShowServiceForm(false);
+    setEditingService(null);
+    if (selectedBusiness) {
+      loadBusinessDetails(selectedBusiness.id);
+    }
+  };
+
+  const handleWorkerSaved = () => {
+    setShowWorkerForm(false);
+    if (selectedBusiness) {
+      loadBusinessDetails(selectedBusiness.id);
+    }
+  };
+
+  const handleDeleteService = async (serviceId: number) => {
+    if (!selectedBusiness) return;
+    if (!confirm("¿Estás seguro de eliminar este servicio?")) return;
+
+    try {
+      await api.deleteService(selectedBusiness.id, serviceId);
+      loadBusinessDetails(selectedBusiness.id);
+    } catch (err: any) {
+      alert(err.message || "Error al eliminar servicio");
+    }
+  };
+
+  const handleDeleteWorker = async (workerId: number) => {
+    if (!selectedBusiness) return;
+    if (!confirm("¿Estás seguro de eliminar este trabajador?")) return;
+
+    try {
+      await api.removeWorker(selectedBusiness.id, workerId);
+      loadBusinessDetails(selectedBusiness.id);
+    } catch (err: any) {
+      alert(err.message || "Error al eliminar trabajador");
+    }
+  };
+
+  // Estado de carga
+  if (loading && businesses.length === 0) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+      <div className="mi-negocio-loading">
+        <FontAwesomeIcon icon={faSpinner} spin className="loading-icon" />
+        <p>Cargando tus negocios...</p>
       </div>
     );
   }
 
-  if (!user || user.role !== "OWNER") {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="mi-negocio-container">
       <Navbar />
 
-      <main className="pt-24 pb-12 px-4">
-        <div className="max-w-6xl mx-auto">
+      <main className="mi-negocio-main">
+        <div className="mi-negocio-content">
           {/* Header */}
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-            className="mb-8"
-          >
-            <motion.div
-              variants={fadeIn}
-              className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-            >
-              <div>
-                <h1 className="text-3xl font-bold text-white mb-2">
-                  Mi Negocio
-                </h1>
-                <p className="text-[#737373]">
-                  Gestiona tu negocio y reservas
-                </p>
-              </div>
-              <button className="px-6 py-3 bg-white text-black rounded-xl font-semibold hover:bg-[#e5e5e5] transition-colors flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Nueva cita
-              </button>
-            </motion.div>
-          </motion.div>
-
-          {/* Business Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-[#111111] rounded-2xl border border-[#1a1a1a] overflow-hidden mb-8"
-          >
-            <div className="flex flex-col md:flex-row">
-              <div className="md:w-64 h-48 md:h-auto">
-                <img
-                  src={mockBusiness.image}
-                  alt={mockBusiness.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex-1 p-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="px-3 py-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-full text-xs font-medium text-[#a3a3a3] mb-3 inline-block">
-                      {mockBusiness.category}
-                    </span>
-                    <h2 className="text-2xl font-bold text-white mb-2">
-                      {mockBusiness.name}
-                    </h2>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-white font-medium">{mockBusiness.rating}</span>
-                      <span className="text-[#525252]">({mockBusiness.reviews} reseñas)</span>
-                    </div>
-                  </div>
-                  <button className="p-3 bg-[#1a1a1a] rounded-xl hover:bg-[#222222] transition-colors">
-                    <Settings className="h-5 w-5 text-[#a3a3a3]" />
-                  </button>
-                </div>
-              </div>
+          <header className="mi-negocio-header">
+            <div>
+              <h1 className="page-title">Mi Negocio</h1>
+              <p className="page-subtitle">Gestiona tu negocio, servicios y trabajadores</p>
             </div>
-          </motion.div>
+            <button onClick={() => setShowBusinessForm(true)} className="btn-primary">
+              <FontAwesomeIcon icon={faPlus} />
+              Nuevo Negocio
+            </button>
+          </header>
 
-          {/* Stats Grid */}
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-            className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
-          >
-            {stats.map((stat, index) => (
-              <motion.div
-                key={index}
-                variants={fadeIn}
-                className="bg-[#111111] rounded-xl border border-[#1a1a1a] p-5"
-              >
-                <div className={`p-3 ${stat.bgColor} rounded-xl w-fit mb-3`}>
-                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                </div>
-                <p className="text-2xl font-bold text-white mb-1">{stat.value}</p>
-                <p className="text-sm text-[#737373]">{stat.label}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Today's Schedule */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="lg:col-span-2 bg-[#111111] rounded-2xl border border-[#1a1a1a] p-6"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-white">
-                  Agenda de hoy
-                </h3>
-                <button className="text-sm text-[#a3a3a3] hover:text-white transition-colors flex items-center gap-1">
-                  Ver todo
-                  <ChevronRight className="h-4 w-4" />
+          {/* Lista de negocios (si hay más de uno) */}
+          {businesses.length > 1 && (
+            <div className="business-selector">
+              {businesses.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => loadBusinessDetails(b.id)}
+                  className={`business-selector-item ${
+                    selectedBusiness?.id === b.id ? "active" : ""
+                  }`}
+                >
+                  <FontAwesomeIcon icon={faStore} />
+                  {b.name}
                 </button>
-              </div>
+              ))}
+            </div>
+          )}
 
-              <div className="space-y-3">
-                {todaySchedule.map((item, index) => (
-                  <div
-                    key={index}
-                    className={`flex items-center gap-4 p-4 rounded-xl transition-colors ${
-                      item.status === "in-progress"
-                        ? "bg-white/5 border border-white/10"
-                        : "bg-[#0a0a0a] hover:bg-[#1a1a1a]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 text-[#737373] w-16">
-                      <Clock className="h-4 w-4" />
-                      <span className="text-sm font-medium">{item.time}</span>
+          {/* No tiene negocios */}
+          {businesses.length === 0 && !loading && (
+            <div className="empty-state-container">
+              <div className="empty-state-icon">
+                <FontAwesomeIcon icon={faStore} />
+              </div>
+              <h2>No tienes negocios registrados</h2>
+              <p>Crea tu primer negocio para empezar a recibir reservas</p>
+              <button onClick={() => setShowBusinessForm(true)} className="btn-primary">
+                <FontAwesomeIcon icon={faPlus} />
+                Crear mi primer negocio
+              </button>
+            </div>
+          )}
+
+          {/* Contenido del negocio seleccionado */}
+          {selectedBusiness && (
+            <>
+              {/* Business Card */}
+              <div className="business-card">
+                <div className="business-card-image">
+                  <img
+                    src={selectedBusiness.cover_image_url || "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=400&h=300&fit=crop"}
+                    alt={selectedBusiness.name}
+                  />
+                </div>
+                <div className="business-card-content">
+                  <div className="business-card-header">
+                    <div>
+                      <span className="business-category">
+                        {selectedBusiness.category_display}
+                      </span>
+                      <h2 className="business-name">{selectedBusiness.name}</h2>
+                      <div className="business-rating">
+                        <FontAwesomeIcon icon={faStar} className="star-icon" />
+                        <span>{(selectedBusiness.average_rating || 0).toFixed(1)}</span>
+                        <span className="rating-count">
+                          ({selectedBusiness.total_reviews} reseñas)
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-white font-medium">{item.client}</p>
-                      <p className="text-sm text-[#525252]">{item.service}</p>
-                    </div>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        item.status === "completed"
-                          ? "bg-green-500/20 text-green-400"
-                          : item.status === "in-progress"
-                          ? "bg-blue-500/20 text-blue-400"
-                          : "bg-[#222222] text-[#a3a3a3]"
-                      }`}
+                    <button
+                      onClick={() => setShowBusinessForm(true)}
+                      className="btn-icon"
+                      title="Editar negocio"
                     >
-                      {item.status === "completed"
-                        ? "Completada"
-                        : item.status === "in-progress"
-                        ? "En curso"
-                        : "Próxima"}
-                    </span>
+                      <FontAwesomeIcon icon={faGear} />
+                    </button>
                   </div>
-                ))}
+                  <p className="business-address">
+                    {selectedBusiness.address}, {selectedBusiness.city}
+                  </p>
+                </div>
               </div>
-            </motion.div>
 
-            {/* Quick Actions */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-[#111111] rounded-2xl border border-[#1a1a1a] p-6"
-            >
-              <h3 className="text-lg font-semibold text-white mb-6">
-                Acciones rápidas
-              </h3>
+              {/* Stats */}
+              <div className="stats-grid">
+                <div className="stat-card">
+                  <div className="stat-icon stat-icon-blue">
+                    <FontAwesomeIcon icon={faCalendarDays} />
+                  </div>
+                  <div className="stat-value">-</div>
+                  <div className="stat-label">Citas hoy</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon stat-icon-green">
+                    <FontAwesomeIcon icon={faDollarSign} />
+                  </div>
+                  <div className="stat-value">-</div>
+                  <div className="stat-label">Ingresos semana</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon stat-icon-purple">
+                    <FontAwesomeIcon icon={faUsers} />
+                  </div>
+                  <div className="stat-value">{workers.length}</div>
+                  <div className="stat-label">Trabajadores</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-icon stat-icon-orange">
+                    <FontAwesomeIcon icon={faScissors} />
+                  </div>
+                  <div className="stat-value">{services.length}</div>
+                  <div className="stat-label">Servicios</div>
+                </div>
+              </div>
 
-              <div className="space-y-3">
-                {quickActions.map((action, index) => (
+              {/* Tabs */}
+              <div className="tabs-container">
+                <div className="tabs">
                   <button
-                    key={index}
-                    className="w-full flex items-center gap-4 p-4 bg-[#0a0a0a] rounded-xl hover:bg-[#1a1a1a] transition-colors group"
+                    onClick={() => setActiveTab("overview")}
+                    className={`tab ${activeTab === "overview" ? "active" : ""}`}
                   >
-                    <div className="p-3 bg-[#1a1a1a] rounded-xl group-hover:bg-[#222222] transition-colors">
-                      <action.icon className="h-5 w-5 text-[#a3a3a3]" />
-                    </div>
-                    <span className="text-white font-medium">{action.label}</span>
-                    <ChevronRight className="h-5 w-5 text-[#404040] ml-auto group-hover:text-[#737373] transition-colors" />
+                    Resumen
                   </button>
-                ))}
+                  <button
+                    onClick={() => setActiveTab("services")}
+                    className={`tab ${activeTab === "services" ? "active" : ""}`}
+                  >
+                    Servicios ({services.length})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("workers")}
+                    className={`tab ${activeTab === "workers" ? "active" : ""}`}
+                  >
+                    Trabajadores ({workers.length})
+                  </button>
+                </div>
+
+                {/* Tab Content */}
+                <div className="tab-content">
+                  {/* Overview Tab */}
+                  {activeTab === "overview" && (
+                    <div className="overview-content">
+                      <div className="overview-section">
+                        <h3>Descripción</h3>
+                        <p>{selectedBusiness.description || "Sin descripción"}</p>
+                      </div>
+                      <div className="overview-section">
+                        <h3>Información de contacto</h3>
+                        <p><strong>Dirección:</strong> {selectedBusiness.address}, {selectedBusiness.city}</p>
+                        <p><strong>Teléfono:</strong> {selectedBusiness.phone || "No especificado"}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Services Tab */}
+                  {activeTab === "services" && (
+                    <div className="services-content">
+                      <div className="section-header">
+                        <h3>Servicios</h3>
+                        <button
+                          onClick={() => {
+                            setEditingService(null);
+                            setShowServiceForm(true);
+                          }}
+                          className="btn-secondary btn-sm"
+                        >
+                          <FontAwesomeIcon icon={faPlus} />
+                          Agregar servicio
+                        </button>
+                      </div>
+
+                      {services.length === 0 ? (
+                        <div className="empty-list">
+                          <p>No hay servicios registrados</p>
+                        </div>
+                      ) : (
+                        <div className="services-list">
+                          {services.map((service) => (
+                            <div key={service.id} className="service-item">
+                              <div className="service-info">
+                                <h4>{service.name}</h4>
+                                <p className="service-description">
+                                  {service.description || "Sin descripción"}
+                                </p>
+                                <div className="service-meta">
+                                  <span>
+                                    <FontAwesomeIcon icon={faClock} />
+                                    {service.duration_minutes} min
+                                  </span>
+                                  <span>
+                                    <FontAwesomeIcon icon={faDollarSign} />
+                                    ${service.price.toLocaleString()}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="service-actions">
+                                <button
+                                  onClick={() => {
+                                    setEditingService(service);
+                                    setShowServiceForm(true);
+                                  }}
+                                  className="btn-icon-sm"
+                                  title="Editar"
+                                >
+                                  <FontAwesomeIcon icon={faPen} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteService(service.id)}
+                                  className="btn-icon-sm btn-danger"
+                                  title="Eliminar"
+                                >
+                                  <FontAwesomeIcon icon={faTrash} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Workers Tab */}
+                  {activeTab === "workers" && (
+                    <div className="workers-content">
+                      <div className="section-header">
+                        <h3>Trabajadores</h3>
+                        <button
+                          onClick={() => setShowWorkerForm(true)}
+                          className="btn-secondary btn-sm"
+                        >
+                          <FontAwesomeIcon icon={faPlus} />
+                          Agregar trabajador
+                        </button>
+                      </div>
+
+                      {workers.length === 0 ? (
+                        <div className="empty-list">
+                          <p>No hay trabajadores registrados</p>
+                        </div>
+                      ) : (
+                        <div className="workers-list">
+                          {workers.map((worker) => (
+                            <div key={worker.id} className="worker-item">
+                              <div className="worker-avatar">
+                                {worker.full_name?.charAt(0).toUpperCase() || "?"}
+                              </div>
+                              <div className="worker-info">
+                                <h4>{worker.full_name}</h4>
+                                <p>{worker.position || "Sin cargo asignado"}</p>
+                                <p className="worker-email">{worker.email}</p>
+                              </div>
+                              <div className="worker-actions">
+                                <button
+                                  onClick={() => handleDeleteWorker(worker.id)}
+                                  className="btn-icon-sm btn-danger"
+                                  title="Eliminar"
+                                >
+                                  <FontAwesomeIcon icon={faTrash} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </motion.div>
-          </div>
+            </>
+          )}
         </div>
       </main>
+
+      {/* Modales */}
+      {showBusinessForm && (
+        <BusinessForm
+          business={selectedBusiness}
+          onSave={handleBusinessSaved}
+          onCancel={() => setShowBusinessForm(false)}
+        />
+      )}
+
+      {showServiceForm && selectedBusiness && (
+        <ServiceForm
+          businessId={selectedBusiness.id}
+          service={editingService}
+          onSave={handleServiceSaved}
+          onCancel={() => {
+            setShowServiceForm(false);
+            setEditingService(null);
+          }}
+        />
+      )}
+
+      {showWorkerForm && selectedBusiness && (
+        <WorkerForm
+          businessId={selectedBusiness.id}
+          onSave={handleWorkerSaved}
+          onCancel={() => setShowWorkerForm(false)}
+        />
+      )}
     </div>
+  );
+}
+
+export default function MiNegocioPage() {
+  return (
+    <ProtectedRoute allowedRoles={["OWNER"]}>
+      <MiNegocioContent />
+    </ProtectedRoute>
   );
 }

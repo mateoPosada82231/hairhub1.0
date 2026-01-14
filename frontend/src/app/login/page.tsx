@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { PublicOnlyRoute } from "@/components/ProtectedRoute";
 import { ApiError } from "@/lib/api";
 import "@/styles/auth.css";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const { login } = useAuth();
   
@@ -127,5 +128,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <PublicOnlyRoute>
+      <LoginPageContent />
+    </PublicOnlyRoute>
   );
 }

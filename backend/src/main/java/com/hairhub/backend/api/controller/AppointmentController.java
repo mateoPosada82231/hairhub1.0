@@ -6,11 +6,13 @@ import com.hairhub.backend.api.service.AppointmentService;
 import com.hairhub.backend.config.SecurityUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -124,6 +126,18 @@ public class AppointmentController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(appointmentService.createReview(id, user.getId(), request));
+    }
+
+    /**
+     * Get worker availability for a specific date
+     */
+    @GetMapping("/availability/{workerId}")
+    public ResponseEntity<AvailabilityResponse> getWorkerAvailability(
+            @PathVariable Long workerId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) Integer duration) {
+
+        return ResponseEntity.ok(appointmentService.getWorkerAvailability(workerId, date, duration));
     }
 }
 

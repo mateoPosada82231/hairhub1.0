@@ -20,8 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -415,6 +417,89 @@ public class AppointmentService {
                 .first(page.isFirst())
                 .last(page.isLast())
                 .empty(page.isEmpty())
+                .build();
+    }
+
+    /**
+     * Get available time slots for a worker on a specific date
+     */
+    @Transactional(readOnly = true)
+    public AvailabilityResponse getWorkerAvailability(Long workerId, LocalDate date, Integer durationMinutes) {
+        Worker worker = workerRepository.findById(workerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Trabajador", workerId));
+
+        if (!worker.isActive()) {
+            throw new BadRequestException("El trabajador no está disponible");
+        }
+
+        // Default duration is 30 minutes
+        int duration = durationMinutes != null ? durationMinutes : 30;
+
+        // Get day of week (1=Monday to 7=Sunday for Java, we need to convert to our format)
+        int dayOfWeek = date.getDayOfWeek().getValue(); // 1=Monday, 7=Sunday
+
+        // Find worker's schedule for this day
+        List<WorkerSchedule> schedules = workerScheduleRepository.findByWorkerIdAndAvailableTrue(workerId);
+        WorkerSchedule daySchedule = schedules.stream()
+                .filter(s -> s.getDayOfWeek() == dayOfWeek)
+                .findFirst()
+                .orElse(null);
+
+        List<AvailabilityResponse.TimeSlot> slots = new ArrayList<>();
+
+        if (daySchedule != null) {
+            // Get existing appointments for this worker on this date
+            LocalDateTime dayStart = date.atStartOfDay();
+            LocalDateTime dayEnd = date.atTime(23, 59, 59);
+            
+            List<Appointment> existingAppointments = appointmentRepository.findByWorkerIdAndDateRange(
+                    workerId, dayStart, dayEnd);
+
+            // Generate time slots
+            LocalTime currentTime = daySchedule.getStartTime();
+            LocalTime endTime = daySchedule.getEndTime();
+
+            while (currentTime.plusMinutes(duration).isBefore(endTime) || 
+                   currentTime.plusMinutes(duration).equals(endTime)) {
+                
+                LocalTime slotEnd = currentTime.plusMinutes(duration);
+                final LocalTime slotStart = currentTime;
+                
+                // Check if slot overlaps with any existing appointment
+                boolean isAvailable = existingAppointments.stream()
+                        .filter(a -> a.getStatus() != AppointmentStatus.CANCELLED)
+                        .noneMatch(a -> {
+                            LocalTime apptStart = a.getStartTime().toLocalTime();
+                            LocalTime apptEnd = a.getEndTime().toLocalTime();
+                            // Check for overlap
+                            return !(slotEnd.isBefore(apptStart) || slotEnd.equals(apptStart) ||
+                                    slotStart.isAfter(apptEnd) || slotStart.equals(apptEnd));
+                        });
+
+                // Don't allow bookings in the past
+                if (date.equals(LocalDate.now()) && currentTime.isBefore(LocalTime.now())) {
+                    isAvailable = false;
+                }
+
+                slots.add(AvailabilityResponse.TimeSlot.builder()
+                        .startTime(currentTime)
+                        .endTime(slotEnd)
+                        .available(isAvailable)
+                        .build());
+
+                currentTime = currentTime.plusMinutes(30); // 30-minute intervals
+            }
+        }
+
+        String workerName = worker.getUser().getProfile() != null 
+                ? worker.getUser().getProfile().getFullName() 
+                : worker.getUser().getEmail();
+
+        return AvailabilityResponse.builder()
+                .workerId(workerId)
+                .workerName(workerName)
+                .date(date)
+                .availableSlots(slots)
                 .build();
     }
 }

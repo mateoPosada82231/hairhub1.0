@@ -427,3 +427,55 @@
 .text-decoration-none {
   text-decoration: none;
 }
+
+/* Role Selector */
+.role-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.role-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 12px;
+  background-color: var(--input-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+}
+
+.role-option:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.role-option-active {
+  border-color: var(--primary) !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.role-option-title {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.role-option-desc {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.role-option-active .role-option-title {
+  color: var(--primary);
+}
+
+.role-option-active .role-option-desc {
+  color: var(--text-secondary);
+}

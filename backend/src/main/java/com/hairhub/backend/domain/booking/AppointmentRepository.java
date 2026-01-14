@@ -49,4 +49,13 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
      */
     @Query("SELECT a.status, COUNT(a) FROM Appointment a WHERE a.worker.business.id = :businessId GROUP BY a.status")
     List<Object[]> countByStatusForBusiness(@Param("businessId") Long businessId);
+
+    /**
+     * Find appointments for a worker within a date range
+     */
+    @Query("SELECT a FROM Appointment a WHERE a.worker.id = :workerId AND a.startTime >= :startTime AND a.startTime <= :endTime ORDER BY a.startTime ASC")
+    List<Appointment> findByWorkerIdAndDateRange(
+            @Param("workerId") Long workerId,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime);
 }
