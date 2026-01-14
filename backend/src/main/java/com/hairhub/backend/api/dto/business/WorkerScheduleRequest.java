@@ -31,6 +31,7 @@ public class WorkerScheduleRequest {
     @JsonProperty("end_time")
     private LocalTime endTime;
 
+    @Builder.Default
     @JsonProperty("is_available")
     private Boolean available = true;
 }

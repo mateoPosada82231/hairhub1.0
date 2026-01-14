@@ -1,0 +1,35 @@
+spring:
+  # Use H2 in-memory database for tests
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  flyway:
+    enabled: false
+
+  docker:
+    compose:
+      enabled: false
+
+# JWT Configuration for tests
+app:
+  jwt:
+    secret: test-secret-key-for-testing-purposes-only-must-be-at-least-256-bits-long
+    expiration-ms: 3600000
+    refresh-expiration-ms: 604800000
+
+# Disable debug logging for tests
+logging:
+  level:
+    root: WARN
+    com.hairhub: INFO
