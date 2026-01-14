@@ -1,62 +1,18 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Calendar, Clock, MapPin, User, ChevronRight } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Calendar, Clock, MapPin, User, ChevronRight, Store, Scissors,
+  X, AlertCircle, CheckCircle, Loader2, RefreshCw, CalendarDays, History
+} from "lucide-react";
 import { Navbar } from "@/components/Navbar";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-
-// Mock de citas
-const mockAppointments = [
-  {
-    id: 1,
-    businessName: "Estilo & Glamour",
-    serviceName: "Corte de cabello",
-    date: "2026-01-15",
-    time: "10:00",
-    status: "confirmed",
-    image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop",
-    address: "El Poblado, Medellín",
-    price: 45000,
-  },
-  {
-    id: 2,
-    businessName: "Zen Spa & Wellness",
-    serviceName: "Masaje relajante",
-    date: "2026-01-18",
-    time: "15:30",
-    status: "pending",
-    image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=300&fit=crop",
-    address: "Envigado",
-    price: 120000,
-  },
-  {
-    id: 3,
-    businessName: "La Casa del Chef",
-    serviceName: "Reserva mesa para 4",
-    date: "2026-01-20",
-    time: "20:00",
-    status: "confirmed",
-    image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
-    address: "Centro, Medellín",
-    price: 0,
-  },
-];
-
-const pastAppointments = [
-  {
-    id: 4,
-    businessName: "FitLife Gym",
-    serviceName: "Clase de spinning",
-    date: "2026-01-05",
-    time: "07:00",
-    status: "completed",
-    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop",
-    address: "Laureles, Medellín",
-    price: 25000,
-  },
-];
+import { api } from "@/lib/api";
+import { Appointment } from "@/types";
+import "@/styles/mis-citas.css";
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -67,231 +23,439 @@ const staggerContainer = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.1 },
+    transition: { staggerChildren: 0.06 },
   },
 };
 
-const getStatusColor = (status: string) => {
+const getStatusConfig = (status: string) => {
   switch (status) {
-    case "confirmed":
-      return "bg-green-500/20 text-green-400 border-green-500/30";
-    case "pending":
-      return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-    case "completed":
-      return "bg-[#333333] text-[#a3a3a3] border-[#404040]";
-    case "cancelled":
-      return "bg-red-500/20 text-red-400 border-red-500/30";
+    case "CONFIRMED":
+      return { className: "status-confirmed", label: "Confirmada", icon: CheckCircle };
+    case "PENDING":
+      return { className: "status-pending", label: "Pendiente", icon: Clock };
+    case "COMPLETED":
+      return { className: "status-completed", label: "Completada", icon: CheckCircle };
+    case "CANCELLED":
+      return { className: "status-cancelled", label: "Cancelada", icon: X };
+    case "NO_SHOW":
+      return { className: "status-no-show", label: "No asistió", icon: AlertCircle };
     default:
-      return "bg-[#333333] text-[#a3a3a3] border-[#404040]";
+      return { className: "status-pending", label: status, icon: Clock };
   }
 };
 
-const getStatusLabel = (status: string) => {
-  switch (status) {
-    case "confirmed":
-      return "Confirmada";
-    case "pending":
-      return "Pendiente";
-    case "completed":
-      return "Completada";
-    case "cancelled":
-      return "Cancelada";
-    default:
-      return status;
-  }
-};
+function formatDateParts(dateString: string) {
+  const date = new Date(dateString);
+  return {
+    day: date.getDate(),
+    month: date.toLocaleDateString("es-ES", { month: "short" }),
+    weekday: date.toLocaleDateString("es-ES", { weekday: "short" }),
+  };
+}
 
-export default function MisCitasPage() {
-  const { user, isLoading } = useAuth();
+function formatTime(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function isUpcoming(dateString: string): boolean {
+  return new Date(dateString) > new Date();
+}
+
+function MisCitasContent() {
+  const { user } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+
+  const loadAppointments = useCallback(async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await api.getMyAppointments(0, 50);
+      setAppointments(response.content || []);
+    } catch (err: any) {
+      setError(err.message || "Error al cargar las citas");
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login");
+    if (user) {
+      loadAppointments();
     }
-  }, [user, isLoading, router]);
+  }, [user, loadAppointments]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
-      </div>
-    );
-  }
+  const handleCancelClick = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setCancelReason("");
+    setShowCancelModal(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!selectedAppointment) return;
+    
+    setCancellingId(selectedAppointment.id);
+    try {
+      await api.cancelAppointment(selectedAppointment.id, cancelReason || undefined);
+      await loadAppointments();
+      setShowCancelModal(false);
+      setSelectedAppointment(null);
+    } catch (err: any) {
+      setError(err.message || "Error al cancelar la cita");
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   if (!user) {
     return null;
   }
 
-  const displayAppointments = activeTab === "upcoming" ? mockAppointments : pastAppointments;
+  const upcomingAppointments = appointments.filter(
+    (apt) => isUpcoming(apt.start_time) && apt.status !== "CANCELLED" && apt.status !== "COMPLETED"
+  );
+  
+  const pastAppointments = appointments.filter(
+    (apt) => !isUpcoming(apt.start_time) || apt.status === "CANCELLED" || apt.status === "COMPLETED"
+  );
+
+  const pendingCount = appointments.filter(apt => apt.status === "PENDING").length;
+  const displayAppointments = activeTab === "upcoming" ? upcomingAppointments : pastAppointments;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="mis-citas-page">
       <Navbar />
 
       <main className="pt-24 pb-12 px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="mis-citas-container">
           {/* Header */}
           <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-            className="mb-8"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mis-citas-header"
           >
-            <motion.h1
-              variants={fadeIn}
-              className="text-3xl font-bold text-white mb-2"
+            <div>
+              <h1 className="mis-citas-title">Mis Citas</h1>
+              <p className="mis-citas-subtitle">Gestiona tus reservas y citas programadas</p>
+            </div>
+            <button
+              onClick={loadAppointments}
+              disabled={loading}
+              className="btn-refresh"
             >
-              Mis Citas
-            </motion.h1>
-            <motion.p variants={fadeIn} className="text-[#737373]">
-              Gestiona tus reservas y citas programadas
-            </motion.p>
+              <RefreshCw className={loading ? "animate-spin" : ""} />
+            </button>
           </motion.div>
 
+          {/* Stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mis-citas-stats"
+          >
+            <div className="stat-card">
+              <div className="stat-card-icon upcoming">
+                <CalendarDays size={20} />
+              </div>
+              <div className="stat-value">{upcomingAppointments.length}</div>
+              <div className="stat-label">Próximas</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-card-icon history">
+                <History size={20} />
+              </div>
+              <div className="stat-value">{pastAppointments.length}</div>
+              <div className="stat-label">Historial</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-card-icon pending">
+                <Clock size={20} />
+              </div>
+              <div className="stat-value">{pendingCount}</div>
+              <div className="stat-label">Pendientes</div>
+            </div>
+          </motion.div>
+
+          {/* Error Message */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="error-banner"
+              >
+                <AlertCircle size={20} />
+                <span>{error}</span>
+                <button onClick={() => setError(null)}>
+                  <X size={18} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Tabs */}
-          <div className="flex gap-2 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="mis-citas-tabs"
+          >
             <button
               onClick={() => setActiveTab("upcoming")}
-              className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                activeTab === "upcoming"
-                  ? "bg-white text-black"
-                  : "bg-[#111111] text-[#a3a3a3] border border-[#222222] hover:border-[#404040]"
-              }`}
+              className={`tab-button ${activeTab === "upcoming" ? "active" : ""}`}
             >
-              Próximas ({mockAppointments.length})
+              <CalendarDays size={18} />
+              Próximas
+              <span className="tab-count">{upcomingAppointments.length}</span>
             </button>
             <button
               onClick={() => setActiveTab("past")}
-              className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                activeTab === "past"
-                  ? "bg-white text-black"
-                  : "bg-[#111111] text-[#a3a3a3] border border-[#222222] hover:border-[#404040]"
-              }`}
+              className={`tab-button ${activeTab === "past" ? "active" : ""}`}
             >
-              Historial ({pastAppointments.length})
+              <History size={18} />
+              Historial
+              <span className="tab-count">{pastAppointments.length}</span>
             </button>
-          </div>
-
-          {/* Appointments List */}
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-            className="space-y-4"
-          >
-            {displayAppointments.map((appointment) => (
-              <motion.div
-                key={appointment.id}
-                variants={fadeIn}
-                className="bg-[#111111] rounded-2xl border border-[#1a1a1a] hover:border-[#2a2a2a] transition-all overflow-hidden"
-              >
-                <div className="flex flex-col sm:flex-row">
-                  {/* Image */}
-                  <div className="sm:w-48 h-32 sm:h-auto">
-                    <img
-                      src={appointment.image}
-                      alt={appointment.businessName}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 p-5">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">
-                          {appointment.businessName}
-                        </h3>
-                        <p className="text-[#a3a3a3]">{appointment.serviceName}</p>
-                      </div>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                          appointment.status
-                        )}`}
-                      >
-                        {getStatusLabel(appointment.status)}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 text-sm text-[#737373] mb-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>
-                          {new Date(appointment.date).toLocaleDateString("es-ES", {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        <span>{appointment.time}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        <span>{appointment.address}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      {appointment.price > 0 && (
-                        <span className="text-white font-semibold">
-                          ${appointment.price.toLocaleString("es-CO")}
-                        </span>
-                      )}
-                      <div className="flex gap-2 ml-auto">
-                        {activeTab === "upcoming" && appointment.status !== "cancelled" && (
-                          <>
-                            <button className="px-4 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-[#a3a3a3] hover:border-[#404040] hover:text-white transition-colors text-sm">
-                              Cancelar
-                            </button>
-                            <button className="px-4 py-2 bg-white text-black rounded-lg font-medium hover:bg-[#e5e5e5] transition-colors text-sm flex items-center gap-1">
-                              Ver detalles
-                              <ChevronRight className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
-                        {activeTab === "past" && (
-                          <button className="px-4 py-2 bg-white text-black rounded-lg font-medium hover:bg-[#e5e5e5] transition-colors text-sm">
-                            Reservar de nuevo
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
           </motion.div>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="loading-container">
+              <Loader2 className="h-8 w-8 animate-spin text-white" />
+            </div>
+          )}
+
+          {/* Appointments List */}
+          {!loading && displayAppointments.length > 0 && (
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={staggerContainer}
+              className="appointments-list"
+            >
+              {displayAppointments.map((appointment) => {
+                const statusConfig = getStatusConfig(appointment.status);
+                const StatusIcon = statusConfig.icon;
+                const dateParts = formatDateParts(appointment.start_time);
+                
+                return (
+                  <motion.div
+                    key={appointment.id}
+                    variants={fadeIn}
+                    className="appointment-card"
+                  >
+                    <div className="appointment-card-inner">
+                      {/* Date Column */}
+                      <div className="appointment-date-col">
+                        <span className="appointment-day">{dateParts.day}</span>
+                        <span className="appointment-month">{dateParts.month}</span>
+                        <span className="appointment-weekday">{dateParts.weekday}</span>
+                      </div>
+
+                      {/* Content */}
+                      <div className="appointment-content">
+                        <div className="appointment-header">
+                          <div className="appointment-business">
+                            <div className="business-avatar">
+                              <Store />
+                            </div>
+                            <div className="business-info">
+                              <h3>{appointment.business_name}</h3>
+                              <p>{appointment.service_name}</p>
+                            </div>
+                          </div>
+                          <span className={`status-badge ${statusConfig.className}`}>
+                            <StatusIcon />
+                            {statusConfig.label}
+                          </span>
+                        </div>
+
+                        <div className="appointment-details">
+                          <div className="detail-item">
+                            <Clock />
+                            <span>{formatTime(appointment.start_time)} - {formatTime(appointment.end_time)}</span>
+                          </div>
+                          <div className="detail-item">
+                            <User />
+                            <span>{appointment.worker_name}</span>
+                          </div>
+                          {appointment.business_address && (
+                            <div className="detail-item">
+                              <MapPin />
+                              <span>{appointment.business_address}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="appointment-footer">
+                          <div className="appointment-price">
+                            <span className="appointment-price-label">Total</span>
+                            ${(appointment.total_price || appointment.service_price || 0).toLocaleString("es-CO")}
+                          </div>
+                          <div className="appointment-actions">
+                            {activeTab === "upcoming" && appointment.status !== "CANCELLED" && (
+                              <button 
+                                onClick={() => handleCancelClick(appointment)}
+                                disabled={cancellingId === appointment.id}
+                                className="btn-cancel"
+                              >
+                                {cancellingId === appointment.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  "Cancelar"
+                                )}
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => router.push(`/negocio/${appointment.business_id}`)}
+                              className="btn-view"
+                            >
+                              Ver negocio
+                              <ChevronRight />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          )}
+
           {/* Empty State */}
-          {displayAppointments.length === 0 && (
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">📅</div>
-              <h3 className="text-xl font-semibold text-white mb-2">
-                No tienes citas {activeTab === "upcoming" ? "programadas" : "anteriores"}
+          {!loading && displayAppointments.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="empty-state"
+            >
+              <div className="empty-state-icon">
+                <Calendar />
+              </div>
+              <h3>
+                {activeTab === "upcoming" 
+                  ? "No tienes citas programadas" 
+                  : "No tienes citas anteriores"
+                }
               </h3>
-              <p className="text-[#737373] mb-6">
+              <p>
                 {activeTab === "upcoming"
-                  ? "Explora los mejores lugares y reserva tu próxima cita"
-                  : "Tu historial de citas aparecerá aquí"}
+                  ? "Explora los mejores establecimientos y reserva tu próxima cita"
+                  : "Tu historial de citas aparecerá aquí cuando tengas citas completadas"}
               </p>
               {activeTab === "upcoming" && (
                 <button
                   onClick={() => router.push("/")}
-                  className="px-6 py-3 bg-white text-black rounded-xl font-semibold hover:bg-[#e5e5e5] transition-colors"
+                  className="btn-explore"
                 >
                   Explorar lugares
                 </button>
               )}
-            </div>
+            </motion.div>
           )}
         </div>
       </main>
+
+      {/* Cancel Modal */}
+      <AnimatePresence>
+        {showCancelModal && selectedAppointment && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="modal-overlay"
+            onClick={() => setShowCancelModal(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="modal-content"
+            >
+              <div className="modal-header">
+                <div className="modal-icon">
+                  <AlertCircle />
+                </div>
+                <div>
+                  <h3 className="modal-title">Cancelar cita</h3>
+                  <p className="modal-subtitle">Esta acción no se puede deshacer</p>
+                </div>
+              </div>
+
+              <div className="modal-appointment-info">
+                <strong>{selectedAppointment.service_name}</strong>
+                <span>
+                  {formatDateParts(selectedAppointment.start_time).day}{" "}
+                  {formatDateParts(selectedAppointment.start_time).month} a las{" "}
+                  {formatTime(selectedAppointment.start_time)}
+                </span>
+              </div>
+
+              <label style={{ display: "block", color: "#a3a3a3", fontSize: "0.875rem", marginBottom: "0.5rem" }}>
+                Motivo de cancelación (opcional)
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Cuéntanos por qué cancelas..."
+                className="modal-textarea"
+                rows={3}
+              />
+
+              <div className="modal-actions">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="modal-btn modal-btn-secondary"
+                >
+                  Volver
+                </button>
+                <button
+                  onClick={handleConfirmCancel}
+                  disabled={cancellingId !== null}
+                  className="modal-btn modal-btn-danger"
+                >
+                  {cancellingId !== null ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Cancelando...
+                    </>
+                  ) : (
+                    "Confirmar cancelación"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+export default function MisCitasPage() {
+  return (
+    <ProtectedRoute>
+      <MisCitasContent />
+    </ProtectedRoute>
   );
 }

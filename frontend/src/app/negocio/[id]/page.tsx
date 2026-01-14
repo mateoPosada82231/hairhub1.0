@@ -19,6 +19,7 @@ import {
   faTimes,
 } from "@fortawesome/free-solid-svg-icons";
 import { Navbar } from "@/components/Navbar";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { Business, Service, Worker, WorkerSchedule } from "@/types";
@@ -69,10 +70,9 @@ function formatDateDisplay(date: Date): string {
   });
 }
 
-// Get day of week (1=Monday, 7=Sunday)
+// Get day of week (0=Sunday, 1=Monday, ..., 6=Saturday)
 function getDayOfWeek(date: Date): number {
-  const day = date.getDay();
-  return day === 0 ? 7 : day;
+  return date.getDay();
 }
 
 // Generate dates for the next 14 days
@@ -90,10 +90,10 @@ function generateDates(): Date[] {
   return dates;
 }
 
-export default function NegocioPage() {
+function NegocioContent() {
   const params = useParams();
   const router = useRouter();
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
   const businessId = Number(params.id);
 
   // State
@@ -161,8 +161,7 @@ export default function NegocioPage() {
       !selectedService ||
       !selectedWorker ||
       !selectedDate ||
-      !selectedTime ||
-      !isAuthenticated
+      !selectedTime
     ) {
       return;
     }
@@ -510,24 +509,11 @@ export default function NegocioPage() {
                 <div className="step-confirm">
                   <h3>Confirma tu reserva</h3>
 
-                  {!isAuthenticated ? (
-                    <div className="login-required">
-                      <FontAwesomeIcon icon={faUser} />
-                      <p>Debes iniciar sesión para reservar una cita</p>
-                      <button
-                        className="btn-primary"
-                        onClick={() => router.push("/login")}
-                      >
-                        Iniciar sesión
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="booking-summary">
-                        <div className="summary-item">
-                          <FontAwesomeIcon icon={faScissors} className="summary-icon" />
-                          <div>
-                            <span className="summary-label">Servicio</span>
+                  <div className="booking-summary">
+                    <div className="summary-item">
+                      <FontAwesomeIcon icon={faScissors} className="summary-icon" />
+                      <div>
+                        <span className="summary-label">Servicio</span>
                             <span className="summary-value">
                               {selectedService?.name}
                             </span>
@@ -586,8 +572,6 @@ export default function NegocioPage() {
                           €{selectedService?.price.toFixed(2)}
                         </span>
                       </div>
-                    </>
-                  )}
                 </div>
               )}
             </div>
@@ -601,7 +585,7 @@ export default function NegocioPage() {
                 </button>
               )}
 
-              {step === "confirm" && isAuthenticated ? (
+              {step === "confirm" ? (
                 <button
                   className="btn-primary"
                   onClick={handleBooking}
@@ -619,7 +603,7 @@ export default function NegocioPage() {
                     </>
                   )}
                 </button>
-              ) : step !== "confirm" ? (
+              ) : (
                 <button
                   className="btn-primary"
                   onClick={goToNextStep}
@@ -632,7 +616,7 @@ export default function NegocioPage() {
                   Siguiente
                   <FontAwesomeIcon icon={faChevronRight} />
                 </button>
-              ) : null}
+              )}
             </div>
 
             {/* Error message */}
@@ -649,5 +633,13 @@ export default function NegocioPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function NegocioPage() {
+  return (
+    <ProtectedRoute>
+      <NegocioContent />
+    </ProtectedRoute>
   );
 }

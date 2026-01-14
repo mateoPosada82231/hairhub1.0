@@ -1,235 +1,383 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { User, Mail, Phone, MapPin, Camera, LogOut, ChevronRight, Bell, Shield, CreditCard } from "lucide-react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  User, Mail, Phone, Camera, LogOut, ChevronRight, Bell, Shield, 
+  Save, X, Calendar, Star, CheckCircle, AlertCircle, Crown, Briefcase 
+} from "lucide-react";
 import { Navbar } from "@/components/Navbar";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { api } from "@/lib/api";
+import "@/styles/perfil.css";
 
-const fadeIn = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
-
-const menuItems = [
-  {
-    icon: Bell,
-    label: "Notificaciones",
-    description: "Configura tus alertas y recordatorios",
-  },
-  {
-    icon: Shield,
-    label: "Privacidad y seguridad",
-    description: "Contraseña, verificación en dos pasos",
-  },
-  {
-    icon: CreditCard,
-    label: "Métodos de pago",
-    description: "Gestiona tus tarjetas y pagos",
-  },
-];
-
-export default function PerfilPage() {
-  const { user, isLoading, logout } = useAuth();
+function PerfilContent() {
+  const { user, logout, refreshUser } = useAuth();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [stats, setStats] = useState({ appointments: 0, favorites: 0, reviews: 0 });
 
+  // Form state
+  const [formData, setFormData] = useState({
+    full_name: "",
+    phone: "",
+    avatar_url: "",
+  });
+
+  // Initialize form data when user loads
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login");
+    if (user) {
+      setFormData({
+        full_name: user.fullName || "",
+        phone: user.phone || "",
+        avatar_url: user.avatarUrl || "",
+      });
+      // Load user stats
+      loadStats();
     }
-  }, [user, isLoading, router]);
+  }, [user]);
+
+  const loadStats = async () => {
+    try {
+      const appointments = await api.getMyAppointments(0, 1);
+      setStats(prev => ({ ...prev, appointments: appointments.total_elements }));
+    } catch (err) {
+      // Ignore errors for stats
+    }
+  };
+
+
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await api.updateProfile(formData);
+      setSuccess("¡Perfil actualizado correctamente!");
+      setIsEditing(false);
+      if (refreshUser) {
+        await refreshUser();
+      }
+      // Auto-hide success message
+      setTimeout(() => setSuccess(null), 4000);
+    } catch (err: any) {
+      setError(err.message || "Error al actualizar el perfil");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    // Reset form to original user data
+    if (user) {
+      setFormData({
+        full_name: user.fullName || "",
+        phone: user.phone || "",
+        avatar_url: user.avatarUrl || "",
+      });
+    }
+    setIsEditing(false);
+    setError(null);
+  };
 
   const handleLogout = () => {
     logout();
     router.push("/");
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
-      </div>
-    );
-  }
-
   if (!user) {
     return null;
   }
 
+  const getRoleInfo = (role: string) => {
+    switch (role) {
+      case "OWNER":
+        return { label: "Propietario", icon: Crown };
+      case "WORKER":
+        return { label: "Trabajador", icon: Briefcase };
+      case "CLIENT":
+        return { label: "Cliente", icon: User };
+      default:
+        return { label: role, icon: User };
+    }
+  };
+
+  const roleInfo = getRoleInfo(user.role);
+  const RoleIcon = roleInfo.icon;
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="profile-page">
       <Navbar />
 
       <main className="pt-24 pb-12 px-4">
-        <div className="max-w-2xl mx-auto">
-          {/* Profile Header */}
+        <div className="profile-container">
+          {/* Messages */}
+          <AnimatePresence>
+            {success && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="profile-message profile-message-success"
+              >
+                <CheckCircle className="h-5 w-5" />
+                <span>{success}</span>
+              </motion.div>
+            )}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="profile-message profile-message-error"
+              >
+                <AlertCircle className="h-5 w-5" />
+                <span>{error}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Profile Header Card */}
           <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-            className="mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="profile-header-card"
           >
-            <motion.div
-              variants={fadeIn}
-              className="bg-[#111111] rounded-2xl border border-[#1a1a1a] p-6"
-            >
-              <div className="flex flex-col sm:flex-row items-center gap-6">
-                {/* Avatar */}
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-full bg-[#1a1a1a] flex items-center justify-center border-2 border-[#2a2a2a]">
-                    <User className="h-12 w-12 text-[#525252]" />
-                  </div>
-                  <button className="absolute bottom-0 right-0 p-2 bg-white rounded-full hover:bg-[#e5e5e5] transition-colors">
-                    <Camera className="h-4 w-4 text-black" />
-                  </button>
+            <div className="profile-header-content">
+              {/* Avatar */}
+              <div className="profile-avatar-container">
+                <div className="profile-avatar">
+                  {formData.avatar_url || user.avatarUrl ? (
+                    <img
+                      src={formData.avatar_url || user.avatarUrl}
+                      alt={user.fullName}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <User className="profile-avatar-placeholder" />
+                  )}
                 </div>
-
-                {/* Info */}
-                <div className="flex-1 text-center sm:text-left">
-                  <h1 className="text-2xl font-bold text-white mb-1">
-                    {user.fullName || "Usuario"}
-                  </h1>
-                  <p className="text-[#737373] mb-3">{user.email}</p>
-                  <span className="px-3 py-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-full text-xs font-medium text-[#a3a3a3]">
-                    {user.role === "OWNER" ? "Propietario" : "Cliente"}
-                  </span>
-                </div>
-
-                {/* Edit Button */}
-                <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="px-6 py-2 bg-white text-black rounded-xl font-medium hover:bg-[#e5e5e5] transition-colors"
-                >
-                  {isEditing ? "Guardar" : "Editar perfil"}
-                </button>
               </div>
-            </motion.div>
+
+              {/* Info */}
+              <div className="profile-info">
+                <h1 className="profile-name">{user.fullName || "Usuario"}</h1>
+                <p className="profile-email">{user.email}</p>
+                <div className="profile-role-badge">
+                  <RoleIcon />
+                  <span>{roleInfo.label}</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="profile-actions">
+                {!isEditing ? (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="btn-edit-profile"
+                  >
+                    <Camera className="h-4 w-4" />
+                    Editar perfil
+                  </button>
+                ) : (
+                  <>
+                    <button onClick={handleCancel} className="btn-cancel-edit">
+                      <X className="h-4 w-4" />
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="btn-save-profile"
+                    >
+                      <Save className="h-4 w-4" />
+                      {isSaving ? "Guardando..." : "Guardar"}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
           </motion.div>
 
-          {/* Profile Form */}
-          {isEditing && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-[#111111] rounded-2xl border border-[#1a1a1a] p-6 mb-8"
-            >
-              <h2 className="text-lg font-semibold text-white mb-6">
-                Información personal
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-[#a3a3a3] mb-2">
-                    Nombre completo
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#525252]" />
-                    <input
-                      type="text"
-                      defaultValue={user.fullName || ""}
-                      className="w-full h-12 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl pl-12 pr-4 text-white placeholder:text-[#525252] focus:outline-none focus:border-[#404040] transition-colors"
-                    />
+          {/* Edit Form */}
+          <AnimatePresence>
+            {isEditing && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="profile-edit-card"
+              >
+                <h2 className="profile-edit-title">
+                  <User className="h-5 w-5" />
+                  Información personal
+                </h2>
+                <div className="profile-form-grid">
+                  <div className="profile-form-group">
+                    <label className="profile-form-label">Nombre completo</label>
+                    <div className="profile-input-wrapper">
+                      <User className="profile-input-icon h-5 w-5" />
+                      <input
+                        type="text"
+                        value={formData.full_name}
+                        onChange={(e) =>
+                          setFormData({ ...formData, full_name: e.target.value })
+                        }
+                        className="profile-input"
+                        placeholder="Tu nombre completo"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm text-[#a3a3a3] mb-2">
-                    Correo electrónico
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#525252]" />
-                    <input
-                      type="email"
-                      defaultValue={user.email}
-                      className="w-full h-12 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl pl-12 pr-4 text-white placeholder:text-[#525252] focus:outline-none focus:border-[#404040] transition-colors"
-                    />
+                  <div className="profile-form-group">
+                    <label className="profile-form-label">Correo electrónico</label>
+                    <div className="profile-input-wrapper">
+                      <Mail className="profile-input-icon h-5 w-5" />
+                      <input
+                        type="email"
+                        value={user.email}
+                        disabled
+                        className="profile-input"
+                      />
+                    </div>
+                    <p className="profile-input-hint">
+                      El correo electrónico no se puede cambiar
+                    </p>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm text-[#a3a3a3] mb-2">
-                    Teléfono
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#525252]" />
-                    <input
-                      type="tel"
-                      placeholder="Agregar teléfono"
-                      className="w-full h-12 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl pl-12 pr-4 text-white placeholder:text-[#525252] focus:outline-none focus:border-[#404040] transition-colors"
-                    />
+                  <div className="profile-form-group">
+                    <label className="profile-form-label">Teléfono</label>
+                    <div className="profile-input-wrapper">
+                      <Phone className="profile-input-icon h-5 w-5" />
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) =>
+                          setFormData({ ...formData, phone: e.target.value })
+                        }
+                        className="profile-input"
+                        placeholder="Tu número de teléfono"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm text-[#a3a3a3] mb-2">
-                    Ubicación
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#525252]" />
-                    <input
-                      type="text"
-                      placeholder="Agregar ubicación"
-                      className="w-full h-12 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl pl-12 pr-4 text-white placeholder:text-[#525252] focus:outline-none focus:border-[#404040] transition-colors"
-                    />
+                  <div className="profile-form-group">
+                    <label className="profile-form-label">URL de foto de perfil</label>
+                    <div className="profile-input-wrapper">
+                      <Camera className="profile-input-icon h-5 w-5" />
+                      <input
+                        type="url"
+                        value={formData.avatar_url}
+                        onChange={(e) =>
+                          setFormData({ ...formData, avatar_url: e.target.value })
+                        }
+                        className="profile-input"
+                        placeholder="https://ejemplo.com/tu-foto.jpg"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="profile-stats"
+          >
+            <div className="profile-stat-card">
+              <div className="profile-stat-value">{stats.appointments}</div>
+              <div className="profile-stat-label">Citas totales</div>
+            </div>
+            <div className="profile-stat-card">
+              <div className="profile-stat-value">{stats.favorites}</div>
+              <div className="profile-stat-label">Favoritos</div>
+            </div>
+            <div className="profile-stat-card">
+              <div className="profile-stat-value">{stats.reviews}</div>
+              <div className="profile-stat-label">Reseñas</div>
+            </div>
+          </motion.div>
 
           {/* Menu Items */}
           <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-            className="space-y-3 mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="profile-menu"
           >
-            {menuItems.map((item, index) => (
-              <motion.button
-                key={index}
-                variants={fadeIn}
-                className="w-full bg-[#111111] rounded-xl border border-[#1a1a1a] p-4 flex items-center gap-4 hover:border-[#2a2a2a] transition-all group"
-              >
-                <div className="p-3 bg-[#1a1a1a] rounded-xl group-hover:bg-[#222222] transition-colors">
-                  <item.icon className="h-5 w-5 text-[#a3a3a3]" />
-                </div>
-                <div className="flex-1 text-left">
-                  <h3 className="text-white font-medium">{item.label}</h3>
-                  <p className="text-sm text-[#525252]">{item.description}</p>
-                </div>
-                <ChevronRight className="h-5 w-5 text-[#404040] group-hover:text-[#737373] transition-colors" />
-              </motion.button>
-            ))}
+            <button
+              onClick={() => router.push("/mis-citas")}
+              className="profile-menu-item"
+            >
+              <div className="profile-menu-icon">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <div className="profile-menu-content">
+                <div className="profile-menu-title">Mis Citas</div>
+                <div className="profile-menu-description">Ver historial y próximas citas</div>
+              </div>
+              <ChevronRight className="profile-menu-arrow h-5 w-5" />
+            </button>
+
+            <button className="profile-menu-item">
+              <div className="profile-menu-icon">
+                <Bell className="h-5 w-5" />
+              </div>
+              <div className="profile-menu-content">
+                <div className="profile-menu-title">Notificaciones</div>
+                <div className="profile-menu-description">Configura tus alertas y recordatorios</div>
+              </div>
+              <ChevronRight className="profile-menu-arrow h-5 w-5" />
+            </button>
+
+            <button className="profile-menu-item">
+              <div className="profile-menu-icon">
+                <Shield className="h-5 w-5" />
+              </div>
+              <div className="profile-menu-content">
+                <div className="profile-menu-title">Privacidad y seguridad</div>
+                <div className="profile-menu-description">Contraseña, verificación en dos pasos</div>
+              </div>
+              <ChevronRight className="profile-menu-arrow h-5 w-5" />
+            </button>
           </motion.div>
 
-          {/* Logout Button */}
-          <motion.div
+          {/* Logout */}
+          <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
+            onClick={handleLogout}
+            className="profile-logout"
           >
-            <button
-              onClick={handleLogout}
-              className="w-full bg-[#111111] rounded-xl border border-red-500/20 p-4 flex items-center gap-4 hover:bg-red-500/10 hover:border-red-500/30 transition-all group"
-            >
-              <div className="p-3 bg-red-500/10 rounded-xl">
-                <LogOut className="h-5 w-5 text-red-400" />
-              </div>
-              <span className="text-red-400 font-medium">Cerrar sesión</span>
-            </button>
-          </motion.div>
+            <div className="profile-logout-icon">
+              <LogOut className="h-5 w-5" />
+            </div>
+            <span className="profile-logout-text">Cerrar sesión</span>
+          </motion.button>
         </div>
       </main>
     </div>
+  );
+}
+
+export default function PerfilPage() {
+  return (
+    <ProtectedRoute>
+      <PerfilContent />
+    </ProtectedRoute>
   );
 }

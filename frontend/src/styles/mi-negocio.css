@@ -657,3 +657,147 @@
   margin-top: 1rem;
   justify-content: flex-end;
 }
+
+/* ================================
+   Schedule Form Styles
+   ================================ */
+
+.modal-large {
+  max-width: 600px;
+}
+
+.schedule-instructions {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.schedule-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.schedule-day {
+  background-color: #1a1a1a;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1rem;
+  transition: var(--transition);
+}
+
+.schedule-day.active {
+  border-color: rgba(255, 255, 255, 0.2);
+  background-color: #222;
+}
+
+.schedule-day-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.day-name {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.schedule-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+}
+
+.schedule-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #333;
+  transition: var(--transition);
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #666;
+  transition: var(--transition);
+  border-radius: 50%;
+}
+
+.schedule-toggle input:checked + .toggle-slider {
+  background-color: var(--primary);
+}
+
+.schedule-toggle input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+  background-color: var(--dark);
+}
+
+.schedule-times {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.time-input {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.time-input label {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.time-input input[type="time"] {
+  padding: 0.5rem;
+  background-color: #111;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.time-input input[type="time"]:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.time-separator {
+  color: var(--text-muted);
+  font-weight: 500;
+  padding-top: 1.25rem;
+}
+
+.worker-schedule-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.worker-schedule-summary svg {
+  font-size: 0.75rem;
+}

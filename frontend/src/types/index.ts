@@ -194,6 +194,24 @@ export interface CreateWorkerRequest {
     position?: string;
 }
 
+export interface WorkerScheduleRequest {
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    is_available: boolean;
+}
+
+export interface UpdateProfileRequest {
+    full_name?: string;
+    phone?: string;
+    avatar_url?: string;
+}
+
+export interface ChangePasswordRequest {
+    current_password: string;
+    new_password: string;
+}
+
 export interface CreateAppointmentRequest {
     business_id: number;
     worker_id: number;

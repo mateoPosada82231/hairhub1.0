@@ -8,7 +8,7 @@ import type { BusinessSummary } from "@/types";
 
 interface EstablishmentGridProps {
   businesses: BusinessSummary[];
-  favorites: number[];
+  favorites: Set<number> | number[];
   onToggleFavorite: (id: number) => void;
   onViewDetails: (id: number) => void;
   onFilterClick: () => void;
@@ -22,7 +22,7 @@ function EstablishmentGridComponent({
   onFilterClick,
 }: EstablishmentGridProps) {
   const isFavorite = useCallback(
-    (id: number) => favorites.includes(id),
+    (id: number) => favorites instanceof Set ? favorites.has(id) : favorites.includes(id),
     [favorites]
   );
 

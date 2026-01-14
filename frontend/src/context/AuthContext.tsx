@@ -9,6 +9,8 @@ interface User {
   email: string;
   fullName: string;
   role: UserRole;
+  phone?: string;
+  avatarUrl?: string;
 }
 
 interface AuthContextType {
@@ -21,6 +23,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<boolean>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -151,6 +154,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [refreshSession, clearAuthData, scheduleTokenRefresh, clearRefreshTimeout]);
 
+  // Refresh user data from API
+  const refreshUser = useCallback(async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/users/me`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        const updatedUser: User = {
+          id: userData.id,
+          email: userData.email,
+          fullName: userData.full_name || userData.fullName,
+          role: userData.role,
+          phone: userData.phone,
+          avatarUrl: userData.avatar_url || userData.avatarUrl,
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+      }
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+    }
+  }, []);
+
   // Login
   const login = useCallback(async (email: string, password: string) => {
     const response = await api.login({ email, password });
@@ -185,6 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         refreshSession,
+        refreshUser,
       }}
     >
       {children}

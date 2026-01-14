@@ -1,6 +1,7 @@
 package com.hairhub.backend.api.dto.business;
 
 import jakarta.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,12 +25,14 @@ public class CreateServiceRequest {
     @NotNull(message = "La duración es obligatoria")
     @Min(value = 5, message = "La duración mínima es 5 minutos")
     @Max(value = 480, message = "La duración máxima es 480 minutos (8 horas)")
+    @JsonProperty("duration_minutes")
     private Integer durationMinutes;
 
     @NotNull(message = "El precio es obligatorio")
     @DecimalMin(value = "0.0", message = "El precio no puede ser negativo")
     private BigDecimal price;
 
+    @JsonProperty("image_url")
     private String imageUrl;
 }
 

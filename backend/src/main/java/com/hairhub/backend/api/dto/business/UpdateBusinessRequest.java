@@ -2,6 +2,7 @@ package com.hairhub.backend.api.dto.business;
 
 import com.hairhub.backend.domain.business.BusinessCategory;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -30,6 +31,7 @@ public class UpdateBusinessRequest {
     @Size(max = 20, message = "El teléfono no puede exceder 20 caracteres")
     private String phone;
 
+    @JsonProperty("cover_image_url")
     private String coverImageUrl;
 
     private Boolean active;

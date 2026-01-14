@@ -531,7 +531,7 @@ function MiAgendaContent() {
 // Main page with protection
 export default function MiAgendaPage() {
   return (
-    <ProtectedRoute allowedRoles={["WORKER"]}>
+    <ProtectedRoute allowedRoles={["WORKER", "OWNER"]}>
       <MiAgendaContent />
     </ProtectedRoute>
   );

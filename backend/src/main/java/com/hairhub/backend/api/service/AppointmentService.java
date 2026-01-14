@@ -435,8 +435,8 @@ public class AppointmentService {
         // Default duration is 30 minutes
         int duration = durationMinutes != null ? durationMinutes : 30;
 
-        // Get day of week (1=Monday to 7=Sunday for Java, we need to convert to our format)
-        int dayOfWeek = date.getDayOfWeek().getValue(); // 1=Monday, 7=Sunday
+        // Get day of week (1=Monday to 7=Sunday in Java, convert to 0=Sunday for our system)
+        int dayOfWeek = date.getDayOfWeek().getValue() % 7; 
 
         // Find worker's schedule for this day
         List<WorkerSchedule> schedules = workerScheduleRepository.findByWorkerIdAndAvailableTrue(workerId);

@@ -180,7 +180,7 @@ public class BusinessService {
 
     // ========== MAPPER METHODS ==========
 
-    private BusinessSummaryResponse toSummaryResponse(Business business) {
+    public BusinessSummaryResponse toSummaryResponse(Business business) {
         return BusinessSummaryResponse.builder()
                 .id(business.getId())
                 .name(business.getName())

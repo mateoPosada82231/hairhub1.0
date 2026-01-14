@@ -1,56 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Heart, MapPin, Star, Trash2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Heart, Loader2, RefreshCw, AlertCircle, X } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
+import { EstablishmentCard } from "@/components/EstablishmentCard";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-
-// Mock de favoritos
-const mockFavorites = [
-  {
-    id: 1,
-    name: "La Casa del Chef",
-    category: "Restaurante",
-    image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
-    location: "Centro, Medellín",
-    rating: 4.8,
-    reviews: 234,
-    priceRange: "$$",
-  },
-  {
-    id: 2,
-    name: "Estilo & Glamour",
-    category: "Salón de Belleza",
-    image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop",
-    location: "El Poblado, Medellín",
-    rating: 4.9,
-    reviews: 189,
-    priceRange: "$$$",
-  },
-  {
-    id: 4,
-    name: "Zen Spa & Wellness",
-    category: "Spa",
-    image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=300&fit=crop",
-    location: "Envigado",
-    rating: 4.9,
-    reviews: 312,
-    priceRange: "$$$",
-  },
-  {
-    id: 5,
-    name: "Café del Parque",
-    category: "Cafetería",
-    image: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&h=300&fit=crop",
-    location: "Provenza, Medellín",
-    rating: 4.6,
-    reviews: 178,
-    priceRange: "$",
-  },
-];
+import { api } from "@/lib/api";
+import { BusinessSummary } from "@/types";
+import "@/styles/home.css";
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -61,36 +21,58 @@ const staggerContainer = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.08 },
+    transition: { staggerChildren: 0.06 },
   },
 };
 
-export default function FavoritosPage() {
-  const { user, isLoading } = useAuth();
+function FavoritosContent() {
+  const { user } = useAuth();
   const router = useRouter();
-  const [favorites, setFavorites] = useState(mockFavorites);
+  const [favorites, setFavorites] = useState<BusinessSummary[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadFavorites = useCallback(async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const data = await api.getAllMyFavorites();
+      setFavorites(data);
+      setFavoriteIds(new Set(data.map(b => b.id)));
+    } catch (err: any) {
+      setError(err.message || "Error al cargar los favoritos");
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login");
+    if (user) {
+      loadFavorites();
     }
-  }, [user, isLoading, router]);
+  }, [user, loadFavorites]);
 
-  const removeFavorite = (id: number) => {
-    setFavorites((prev) => prev.filter((fav) => fav.id !== id));
+  const handleToggleFavorite = async (businessId: number) => {
+    try {
+      await api.removeFavorite(businessId);
+      setFavorites(prev => prev.filter(b => b.id !== businessId));
+      setFavoriteIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(businessId);
+        return newSet;
+      });
+    } catch (err: any) {
+      setError(err.message || "Error al eliminar de favoritos");
+    }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
+  const handleViewDetails = (businessId: number) => {
+    router.push(`/negocio/${businessId}`);
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
@@ -100,107 +82,91 @@ export default function FavoritosPage() {
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={staggerContainer}
-            className="mb-8"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-start justify-between mb-8"
           >
-            <motion.h1
-              variants={fadeIn}
-              className="text-3xl font-bold text-white mb-2"
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2.5 rounded-xl bg-red-500/10">
+                  <Heart className="h-6 w-6 text-red-500 fill-red-500" />
+                </div>
+                <h1 className="text-3xl font-bold text-white">Mis Favoritos</h1>
+              </div>
+              <p className="text-[#737373]">
+                {favorites.length} {favorites.length === 1 ? "lugar guardado" : "lugares guardados"}
+              </p>
+            </div>
+            <button
+              onClick={loadFavorites}
+              disabled={loading}
+              className="p-3 rounded-xl bg-[#111111] border border-[#222222] text-[#737373] hover:text-white hover:border-[#333333] transition-all disabled:opacity-50"
             >
-              Mis Favoritos
-            </motion.h1>
-            <motion.p variants={fadeIn} className="text-[#737373]">
-              {favorites.length} lugares guardados
-            </motion.p>
+              <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+            </button>
           </motion.div>
 
+          {/* Error Message */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400"
+              >
+                <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                <span>{error}</span>
+                <button onClick={() => setError(null)} className="ml-auto">
+                  <X className="h-4 w-4" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-white" />
+            </div>
+          )}
+
           {/* Favorites Grid */}
-          {favorites.length > 0 ? (
+          {!loading && favorites.length > 0 && (
             <motion.div
               initial="hidden"
               animate="visible"
               variants={staggerContainer}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+              className="establishments-grid"
             >
-              {favorites.map((fav) => (
-                <motion.div
-                  key={fav.id}
-                  variants={fadeIn}
-                  className="bg-[#111111] rounded-2xl overflow-hidden border border-[#1a1a1a] hover:border-[#2a2a2a] transition-all group"
-                >
-                  {/* Image */}
-                  <div className="relative h-48 overflow-hidden">
-                    <img
-                      src={fav.image}
-                      alt={fav.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-
-                    {/* Remove Button */}
-                    <button
-                      onClick={() => removeFavorite(fav.id)}
-                      className="absolute top-3 right-3 p-2 bg-black/40 backdrop-blur-sm rounded-full hover:bg-red-500/80 transition-colors group/btn"
-                    >
-                      <Heart className="h-5 w-5 fill-red-500 text-red-500 group-hover/btn:hidden" />
-                      <Trash2 className="h-5 w-5 text-white hidden group-hover/btn:block" />
-                    </button>
-
-                    {/* Category Badge */}
-                    <div className="absolute bottom-3 left-3">
-                      <span className="px-3 py-1 bg-black/40 backdrop-blur-sm rounded-full text-white text-xs font-medium">
-                        {fav.category}
-                      </span>
-                    </div>
-
-                    {/* Price Range */}
-                    <div className="absolute bottom-3 right-3">
-                      <span className="px-3 py-1 bg-black/40 backdrop-blur-sm rounded-full text-white text-xs font-medium">
-                        {fav.priceRange}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-5">
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-lg font-semibold text-white group-hover:text-[#d4d4d4] transition-colors">
-                        {fav.name}
-                      </h3>
-                      <div className="flex items-center gap-1 text-sm">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-white font-medium">{fav.rating}</span>
-                        <span className="text-[#525252]">({fav.reviews})</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-[#737373] text-sm mb-4">
-                      <MapPin className="h-4 w-4" />
-                      <span>{fav.location}</span>
-                    </div>
-
-                    <button className="w-full py-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl text-white font-medium hover:bg-[#222222] hover:border-[#333333] transition-colors">
-                      Ver disponibilidad
-                    </button>
-                  </div>
+              {favorites.map((business) => (
+                <motion.div key={business.id} variants={fadeIn}>
+                  <EstablishmentCard
+                    business={business}
+                    isFavorite={favoriteIds.has(business.id)}
+                    onToggleFavorite={handleToggleFavorite}
+                    onViewDetails={handleViewDetails}
+                  />
                 </motion.div>
               ))}
             </motion.div>
-          ) : (
-            /* Empty State */
+          )}
+
+          {/* Empty State */}
+          {!loading && favorites.length === 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-center py-20"
             >
-              <div className="text-6xl mb-4">💔</div>
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-[#111111] flex items-center justify-center border border-[#222222]">
+                <Heart className="h-12 w-12 text-[#333333]" />
+              </div>
               <h3 className="text-xl font-semibold text-white mb-2">
-                No tienes favoritos aún
+                No tienes favoritos guardados
               </h3>
-              <p className="text-[#737373] mb-6">
-                Explora los mejores lugares y guarda tus favoritos para encontrarlos fácilmente
+              <p className="text-[#737373] mb-6 max-w-md mx-auto">
+                Explora los establecimientos y guarda tus favoritos tocando el corazón para encontrarlos fácilmente después
               </p>
               <button
                 onClick={() => router.push("/")}
@@ -213,5 +179,13 @@ export default function FavoritosPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function FavoritosPage() {
+  return (
+    <ProtectedRoute>
+      <FavoritosContent />
+    </ProtectedRoute>
   );
 }

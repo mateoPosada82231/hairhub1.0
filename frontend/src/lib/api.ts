@@ -5,6 +5,7 @@ import {
   Business,
   Service,
   Worker,
+  User,
   Appointment,
   PageResponse,
   CategoryOption,
@@ -13,6 +14,9 @@ import {
   CreateServiceRequest,
   UpdateServiceRequest,
   CreateWorkerRequest,
+  WorkerScheduleRequest,
+  UpdateProfileRequest,
+  ChangePasswordRequest,
   CreateAppointmentRequest,
   UpdateAppointmentRequest,
   BusinessCategory,
@@ -233,6 +237,71 @@ class ApiClient {
   // Get worker profiles for the current user (businesses where they work)
   async getMyWorkerProfiles(): Promise<Worker[]> {
     return this.request<Worker[]>("/api/workers/me");
+  }
+
+  // Set worker schedule
+  async setWorkerSchedule(businessId: number, workerId: number, schedules: WorkerScheduleRequest[]): Promise<Worker> {
+    return this.request<Worker>(`/api/businesses/${businessId}/workers/${workerId}/schedule`, {
+      method: "PUT",
+      body: JSON.stringify(schedules),
+    });
+  }
+
+  // ==================== USER PROFILE ====================
+  async updateProfile(data: UpdateProfileRequest): Promise<User> {
+    return this.request<User>("/api/users/me", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  async changePassword(data: ChangePasswordRequest): Promise<void> {
+    return this.request<void>("/api/users/me/change-password", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ==================== FAVORITES ====================
+  async getMyFavorites(page = 0, size = 20): Promise<PageResponse<BusinessSummary>> {
+    return this.request<PageResponse<BusinessSummary>>(
+      `/api/favorites?page=${page}&size=${size}`
+    );
+  }
+
+  async getAllMyFavorites(): Promise<BusinessSummary[]> {
+    return this.request<BusinessSummary[]>("/api/favorites/all");
+  }
+
+  async getMyFavoriteIds(): Promise<number[]> {
+    return this.request<number[]>("/api/favorites/ids");
+  }
+
+  async checkFavorite(businessId: number): Promise<boolean> {
+    const result = await this.request<{ is_favorite: boolean }>(
+      `/api/favorites/check/${businessId}`
+    );
+    return result.is_favorite;
+  }
+
+  async addFavorite(businessId: number): Promise<void> {
+    return this.request<void>(`/api/favorites/${businessId}`, {
+      method: "POST",
+    });
+  }
+
+  async removeFavorite(businessId: number): Promise<void> {
+    return this.request<void>(`/api/favorites/${businessId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async toggleFavorite(businessId: number): Promise<{ isFavorite: boolean }> {
+    const result = await this.request<{ is_favorite: boolean }>(
+      `/api/favorites/${businessId}/toggle`,
+      { method: "POST" }
+    );
+    return { isFavorite: result.is_favorite };
   }
 
   // ==================== APPOINTMENTS ====================

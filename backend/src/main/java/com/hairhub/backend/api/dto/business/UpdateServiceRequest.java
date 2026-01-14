@@ -4,6 +4,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,11 +26,13 @@ public class UpdateServiceRequest {
 
     @Min(value = 5, message = "La duración mínima es 5 minutos")
     @Max(value = 480, message = "La duración máxima es 480 minutos (8 horas)")
+    @JsonProperty("duration_minutes")
     private Integer durationMinutes;
 
     @DecimalMin(value = "0.0", message = "El precio no puede ser negativo")
     private BigDecimal price;
 
+    @JsonProperty("image_url")
     private String imageUrl;
 
     private Boolean active;

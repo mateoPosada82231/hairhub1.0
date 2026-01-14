@@ -20,7 +20,7 @@ function HomePageContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [favorites, setFavorites] = useState<number[]>([]);
+  const [favorites, setFavorites] = useState<Set<number>>(new Set());
   
   // Estados de datos
   const [businesses, setBusinesses] = useState<BusinessSummary[]>([]);
@@ -32,17 +32,21 @@ function HomePageContent() {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
-  // Cargar categorías al montar
+  // Cargar categorías y favoritos al montar
   useEffect(() => {
-    const loadCategories = async () => {
+    const loadInitialData = async () => {
       try {
-        const cats = await api.getCategories();
+        const [cats, favIds] = await Promise.all([
+          api.getCategories(),
+          api.getMyFavoriteIds().catch(() => [] as number[])
+        ]);
         setCategories(cats);
+        setFavorites(new Set(favIds));
       } catch (err) {
-        console.error("Error loading categories:", err);
+        console.error("Error loading initial data:", err);
       }
     };
-    loadCategories();
+    loadInitialData();
   }, []);
 
   // Cargar negocios
@@ -97,10 +101,21 @@ function HomePageContent() {
     setPage(0);
   }, []);
 
-  const handleToggleFavorite = useCallback((id: number) => {
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((fId) => fId !== id) : [...prev, id]
-    );
+  const handleToggleFavorite = useCallback(async (id: number) => {
+    try {
+      const result = await api.toggleFavorite(id);
+      setFavorites((prev) => {
+        const newSet = new Set(prev);
+        if (result.isFavorite) {
+          newSet.add(id);
+        } else {
+          newSet.delete(id);
+        }
+        return newSet;
+      });
+    } catch (err) {
+      console.error("Error toggling favorite:", err);
+    }
   }, []);
 
   const handleViewDetails = useCallback((id: number) => {

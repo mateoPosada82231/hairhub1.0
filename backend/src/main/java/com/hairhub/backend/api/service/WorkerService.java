@@ -36,7 +36,7 @@ public class WorkerService {
     public List<WorkerResponse> getWorkersByBusiness(Long businessId) {
         return workerRepository.findByBusinessIdWithProfile(businessId)
                 .stream()
-                .map(this::toResponse)
+                .map(this::toResponseWithSchedule)
                 .collect(Collectors.toList());
     }
 
@@ -74,16 +74,17 @@ public class WorkerService {
             throw new ForbiddenException("No tienes permiso para agregar trabajadores a este negocio");
         }
 
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario", request.getUserId()));
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario con email " + request.getEmail() + " no encontrado"));
 
-        // Verify user has WORKER role
+        // Verify user has WORKER role or upgrade
         if (user.getRole() != UserRole.WORKER) {
-            throw new BadRequestException("El usuario debe tener rol WORKER para ser agregado como trabajador");
+            user.setRole(UserRole.WORKER);
+            userRepository.save(user);
         }
 
         // Check if already a worker in this business
-        if (workerRepository.findByUserIdAndBusinessId(request.getUserId(), businessId).isPresent()) {
+        if (workerRepository.findByUserIdAndBusinessId(user.getId(), businessId).isPresent()) {
             throw new ConflictException("El usuario ya es trabajador de este negocio");
         }
 
