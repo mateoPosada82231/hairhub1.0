@@ -37,9 +37,18 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/health",
+                                "/api/businesses/search",
+                                "/api/businesses/categories",
+                                "/api/businesses/{id:[\\d]+}",
+                                "/api/businesses/{businessId:[\\d]+}/services",
+                                "/api/businesses/{businessId:[\\d]+}/services/{serviceId:[\\d]+}",
+                                "/api/businesses/{businessId:[\\d]+}/workers",
+                                "/api/businesses/{businessId:[\\d]+}/workers/{workerId:[\\d]+}",
+                                "/api/businesses/{businessId:[\\d]+}/reviews",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/actuator/**" // Monitoring
+                                "/swagger-ui.html",
+                                "/actuator/**"
                         ).permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

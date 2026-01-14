@@ -2,11 +2,14 @@ package com.hairhub.backend.api.controller;
 
 import com.hairhub.backend.api.dto.auth.AuthResponse;
 import com.hairhub.backend.api.dto.auth.LoginRequest;
+import com.hairhub.backend.api.dto.auth.RefreshTokenRequest;
 import com.hairhub.backend.api.dto.auth.RegisterRequest;
 import com.hairhub.backend.api.service.AuthService;
+import com.hairhub.backend.config.SecurityUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,5 +29,18 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refreshToken(
+            @Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.refreshToken(request));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(
+            @AuthenticationPrincipal SecurityUser user) {
+        authService.logout(user.getId());
+        return ResponseEntity.ok().build();
     }
 }
