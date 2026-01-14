@@ -1,21 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, MapPin, Star, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  BusinessCategory,
-  CATEGORY_LABELS,
-  CATEGORY_ICONS,
-} from "@/types";
+import { Search, MapPin, Star, Heart, Filter } from "lucide-react";
+import { Navbar } from "@/components/Navbar";
 
 // Animation variants
 const fadeIn = {
@@ -28,316 +16,326 @@ const staggerContainer = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
+      staggerChildren: 0.08,
     },
   },
 };
 
-// Mock featured businesses for display
-const featuredBusinesses = [
+// Categorías disponibles
+const categories = [
+  { id: "all", label: "Todos", icon: "🔍" },
+  { id: "restaurant", label: "Restaurantes", icon: "🍽️" },
+  { id: "salon", label: "Salones de Belleza", icon: "💇" },
+  { id: "gym", label: "Gimnasios", icon: "🏋️" },
+  { id: "spa", label: "Spas", icon: "🧖" },
+  { id: "cafe", label: "Cafeterías", icon: "☕" },
+  { id: "bar", label: "Bares", icon: "🍸" },
+];
+
+// Mock de establecimientos
+const establishments = [
   {
     id: 1,
-    name: "Barbería Elite",
-    category: "BARBERSHOP" as BusinessCategory,
-    coverImageUrl: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=400&h=300&fit=crop",
-    city: "Medellín",
-    averageRating: 4.9,
-    totalReviews: 127,
+    name: "La Casa del Chef",
+    category: "restaurant",
+    image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
+    location: "Centro, Medellín",
+    rating: 4.8,
+    reviews: 234,
+    priceRange: "$$",
+    openNow: true,
+    distance: "0.8 km",
   },
   {
     id: 2,
-    name: "Spa Serenity",
-    category: "SPA" as BusinessCategory,
-    coverImageUrl: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=300&fit=crop",
-    city: "Bogotá",
-    averageRating: 4.8,
-    totalReviews: 89,
+    name: "Estilo & Glamour",
+    category: "salon",
+    image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&h=300&fit=crop",
+    location: "El Poblado, Medellín",
+    rating: 4.9,
+    reviews: 189,
+    priceRange: "$$$",
+    openNow: true,
+    distance: "1.2 km",
   },
   {
     id: 3,
-    name: "Nail Art Studio",
-    category: "NAIL_SALON" as BusinessCategory,
-    coverImageUrl: "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=300&fit=crop",
-    city: "Cali",
-    averageRating: 4.7,
-    totalReviews: 64,
+    name: "FitLife Gym",
+    category: "gym",
+    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop",
+    location: "Laureles, Medellín",
+    rating: 4.7,
+    reviews: 456,
+    priceRange: "$$",
+    openNow: false,
+    distance: "2.1 km",
+  },
+  {
+    id: 4,
+    name: "Zen Spa & Wellness",
+    category: "spa",
+    image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=300&fit=crop",
+    location: "Envigado",
+    rating: 4.9,
+    reviews: 312,
+    priceRange: "$$$",
+    openNow: true,
+    distance: "3.5 km",
+  },
+  {
+    id: 5,
+    name: "Café del Parque",
+    category: "cafe",
+    image: "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=400&h=300&fit=crop",
+    location: "Provenza, Medellín",
+    rating: 4.6,
+    reviews: 178,
+    priceRange: "$",
+    openNow: true,
+    distance: "0.5 km",
+  },
+  {
+    id: 6,
+    name: "The Rooftop Bar",
+    category: "bar",
+    image: "https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=400&h=300&fit=crop",
+    location: "El Poblado, Medellín",
+    rating: 4.5,
+    reviews: 267,
+    priceRange: "$$$",
+    openNow: false,
+    distance: "1.8 km",
   },
 ];
 
-const categories: BusinessCategory[] = [
-  "BARBERSHOP",
-  "HAIR_SALON",
-  "NAIL_SALON",
-  "SPA",
-  "CAR_WASH",
-  "PET_GROOMING",
-  "TATTOO_STUDIO",
-  "OTHER",
-];
-
 export default function HomePage() {
-  return (
-    <div className="min-h-screen bg-[var(--background)]">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        {/* Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary-600)] via-[var(--primary-500)] to-[var(--accent-500)] opacity-90" />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')] opacity-30" />
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [favorites, setFavorites] = useState<number[]>([]);
 
-        <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
+  const filteredEstablishments = establishments.filter((est) => {
+    const matchesCategory = selectedCategory === "all" || est.category === selectedCategory;
+    const matchesSearch = est.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          est.location.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const toggleFavorite = (id: number) => {
+    setFavorites((prev) =>
+      prev.includes(id) ? prev.filter((fId) => fId !== id) : [...prev, id]
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a]">
+      <Navbar />
+
+      {/* Hero / Search Section */}
+      <section className="relative pt-24 pb-12 px-4">
+        <div className="max-w-6xl mx-auto">
           <motion.div
-            className="text-center"
             initial="hidden"
             animate="visible"
             variants={staggerContainer}
+            className="text-center mb-10"
           >
-            {/* Logo/Brand */}
-            <motion.div variants={fadeIn} className="mb-6">
-              <span className="text-5xl">💈</span>
-            </motion.div>
-
-            {/* Title */}
             <motion.h1
               variants={fadeIn}
-              className="mb-4 text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl"
+              className="text-4xl md:text-5xl font-bold text-white mb-4"
             >
-              Descubre los mejores{" "}
-              <span className="text-[var(--accent-200)]">servicios</span>
-              <br />
-              cerca de ti
+              Encuentra y reserva los mejores{" "}
+              <span className="text-[#a3a3a3]">lugares</span>
             </motion.h1>
-
-            {/* Subtitle */}
             <motion.p
               variants={fadeIn}
-              className="mx-auto mb-10 max-w-2xl text-lg text-white/80 sm:text-xl"
+              className="text-[#737373] text-lg max-w-2xl mx-auto"
             >
-              Reserva citas en barberías, spas, salones de belleza y más.
-              Todo en un solo lugar.
+              Restaurantes, spas, gimnasios, salones de belleza y más. Todo en un solo lugar.
             </motion.p>
-
-            {/* Search Bar */}
-            <motion.div
-              variants={fadeIn}
-              className="mx-auto max-w-2xl"
-            >
-              <div className="flex flex-col gap-3 rounded-2xl bg-white/10 p-3 backdrop-blur-lg sm:flex-row sm:items-center">
-                <div className="relative flex-1">
-                  <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/60" />
-                  <input
-                    type="text"
-                    placeholder="¿Qué servicio estás buscando?"
-                    className="h-14 w-full rounded-xl bg-white/10 pl-12 pr-4 text-white placeholder:text-white/60 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30"
-                  />
-                </div>
-                <div className="relative flex-1 sm:max-w-[200px]">
-                  <MapPin className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/60" />
-                  <input
-                    type="text"
-                    placeholder="Ciudad"
-                    className="h-14 w-full rounded-xl bg-white/10 pl-12 pr-4 text-white placeholder:text-white/60 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30"
-                  />
-                </div>
-                <Button
-                  size="lg"
-                  variant="accent"
-                  className="h-14 px-8 text-base font-bold"
-                >
-                  Buscar
-                </Button>
-              </div>
-            </motion.div>
           </motion.div>
-        </div>
 
-        {/* Wave Divider */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg
-            viewBox="0 0 1440 120"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-full"
-          >
-            <path
-              d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 85C1200 90 1320 90 1380 90L1440 90V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z"
-              fill="var(--background)"
-            />
-          </svg>
-        </div>
-      </section>
-
-      {/* Categories Section */}
-      <section className="py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          {/* Search Bar */}
           <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={staggerContainer}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="max-w-3xl mx-auto mb-10"
           >
-            <motion.h2
-              variants={fadeIn}
-              className="mb-2 text-center text-3xl font-bold"
-            >
-              Explora por categoría
-            </motion.h2>
-            <motion.p
-              variants={fadeIn}
-              className="mb-10 text-center text-[var(--foreground-muted)]"
-            >
-              Encuentra el servicio perfecto para ti
-            </motion.p>
-
-            <motion.div
-              variants={staggerContainer}
-              className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8"
-            >
-              {categories.map((category) => (
-                <motion.div key={category} variants={fadeIn}>
-                  <Card
-                    hover
-                    className="group flex flex-col items-center p-4 text-center"
-                  >
-                    <span className="mb-3 text-4xl transition-transform duration-300 group-hover:scale-110">
-                      {CATEGORY_ICONS[category]}
-                    </span>
-                    <span className="text-sm font-medium leading-tight">
-                      {CATEGORY_LABELS[category]}
-                    </span>
-                  </Card>
-                </motion.div>
-              ))}
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Featured Businesses Section */}
-      <section className="bg-[var(--background-secondary)] py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={staggerContainer}
-          >
-            <div className="mb-10 flex items-center justify-between">
-              <div>
-                <motion.h2
-                  variants={fadeIn}
-                  className="text-3xl font-bold"
-                >
-                  Destacados
-                </motion.h2>
-                <motion.p
-                  variants={fadeIn}
-                  className="text-[var(--foreground-muted)]"
-                >
-                  Los negocios mejor valorados de la comunidad
-                </motion.p>
+            <div className="flex flex-col sm:flex-row gap-3 bg-[#111111] p-4 rounded-2xl border border-[#222222]">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#525252]" />
+                <input
+                  type="text"
+                  placeholder="¿Qué estás buscando?"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-12 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl pl-12 pr-4 text-white placeholder:text-[#525252] focus:outline-none focus:border-[#404040] transition-colors"
+                />
               </div>
-              <motion.div variants={fadeIn}>
-                <Button variant="ghost" className="group">
-                  Ver todos
-                  <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Button>
-              </motion.div>
+              <div className="relative flex-1 sm:max-w-[200px]">
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#525252]" />
+                <input
+                  type="text"
+                  placeholder="Ubicación"
+                  className="w-full h-12 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl pl-12 pr-4 text-white placeholder:text-[#525252] focus:outline-none focus:border-[#404040] transition-colors"
+                />
+              </div>
+              <button className="h-12 px-8 bg-white text-black font-semibold rounded-xl hover:bg-[#e5e5e5] transition-colors flex items-center justify-center gap-2">
+                <Search className="h-5 w-5" />
+                Buscar
+              </button>
             </div>
+          </motion.div>
 
-            <motion.div
-              variants={staggerContainer}
-              className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
-            >
-              {featuredBusinesses.map((business) => (
-                <motion.div key={business.id} variants={fadeIn}>
-                  <Card hover className="overflow-hidden p-0">
-                    {/* Image */}
-                    <div className="relative h-48 overflow-hidden">
-                      <img
-                        src={business.coverImageUrl}
-                        alt={business.name}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      {/* Category Badge */}
-                      <div className="absolute left-4 top-4">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-sm font-medium backdrop-blur-sm">
-                          {CATEGORY_ICONS[business.category]}
-                          {CATEGORY_LABELS[business.category]}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-5">
-                      <h3 className="mb-1 text-xl font-bold">{business.name}</h3>
-                      <div className="mb-3 flex items-center gap-2 text-sm text-[var(--foreground-muted)]">
-                        <MapPin className="h-4 w-4" />
-                        {business.city}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                        <span className="font-bold">{business.averageRating}</span>
-                        <span className="text-[var(--foreground-muted)]">
-                          ({business.totalReviews} reseñas)
-                        </span>
-                      </div>
-                    </div>
-                  </Card>
-                </motion.div>
-              ))}
-            </motion.div>
+          {/* Categories */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-wrap justify-center gap-3 mb-12"
+          >
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-5 py-2.5 rounded-full flex items-center gap-2 transition-all duration-200 ${
+                  selectedCategory === cat.id
+                    ? "bg-white text-black font-semibold"
+                    : "bg-[#111111] text-[#a3a3a3] border border-[#222222] hover:border-[#404040] hover:text-white"
+                }`}
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.label}</span>
+              </button>
+            ))}
           </motion.div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20">
-        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+      {/* Results Section */}
+      <section className="px-4 pb-20">
+        <div className="max-w-6xl mx-auto">
+          {/* Results Header */}
+          <div className="flex items-center justify-between mb-6">
+            <p className="text-[#737373]">
+              <span className="text-white font-semibold">{filteredEstablishments.length}</span> lugares encontrados
+            </p>
+            <button className="flex items-center gap-2 px-4 py-2 bg-[#111111] border border-[#222222] rounded-lg text-[#a3a3a3] hover:border-[#404040] hover:text-white transition-colors">
+              <Filter className="h-4 w-4" />
+              Filtros
+            </button>
+          </div>
+
+          {/* Establishments Grid */}
           <motion.div
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate="visible"
             variants={staggerContainer}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >
-            <motion.h2
-              variants={fadeIn}
-              className="mb-4 text-3xl font-bold sm:text-4xl"
-            >
-              ¿Tienes un negocio?
-            </motion.h2>
-            <motion.p
-              variants={fadeIn}
-              className="mb-8 text-lg text-[var(--foreground-muted)]"
-            >
-              Únete a HairHub y llega a miles de clientes potenciales.
-              Gestiona tus citas, trabajadores y estadísticas en un solo lugar.
-            </motion.p>
-            <motion.div
-              variants={fadeIn}
-              className="flex flex-col justify-center gap-4 sm:flex-row"
-            >
-              <Button size="lg" className="text-base">
-                Registrar mi negocio
-              </Button>
-              <Button size="lg" variant="outline" className="text-base">
-                Saber más
-              </Button>
-            </motion.div>
+            {filteredEstablishments.map((est) => (
+              <motion.div
+                key={est.id}
+                variants={fadeIn}
+                className="bg-[#111111] rounded-2xl overflow-hidden border border-[#1a1a1a] hover:border-[#2a2a2a] transition-all duration-300 group"
+              >
+                {/* Image */}
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={est.image}
+                    alt={est.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                  
+                  {/* Favorite Button */}
+                  <button
+                    onClick={() => toggleFavorite(est.id)}
+                    className="absolute top-3 right-3 p-2 bg-black/40 backdrop-blur-sm rounded-full hover:bg-black/60 transition-colors"
+                  >
+                    <Heart
+                      className={`h-5 w-5 transition-colors ${
+                        favorites.includes(est.id)
+                          ? "fill-red-500 text-red-500"
+                          : "text-white"
+                      }`}
+                    />
+                  </button>
+
+                  {/* Open Status */}
+                  <div className="absolute bottom-3 left-3">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        est.openNow
+                          ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                          : "bg-red-500/20 text-red-400 border border-red-500/30"
+                      }`}
+                    >
+                      {est.openNow ? "Abierto" : "Cerrado"}
+                    </span>
+                  </div>
+
+                  {/* Price Range */}
+                  <div className="absolute bottom-3 right-3">
+                    <span className="px-3 py-1 bg-black/40 backdrop-blur-sm rounded-full text-white text-xs font-medium">
+                      {est.priceRange}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-5">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="text-lg font-semibold text-white group-hover:text-[#d4d4d4] transition-colors">
+                      {est.name}
+                    </h3>
+                    <div className="flex items-center gap-1 text-sm">
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <span className="text-white font-medium">{est.rating}</span>
+                      <span className="text-[#525252]">({est.reviews})</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-[#737373] text-sm mb-4">
+                    <MapPin className="h-4 w-4" />
+                    <span>{est.location}</span>
+                    <span className="text-[#404040]">•</span>
+                    <span>{est.distance}</span>
+                  </div>
+
+                  <button className="w-full py-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl text-white font-medium hover:bg-[#222222] hover:border-[#333333] transition-colors">
+                    Ver disponibilidad
+                  </button>
+                </div>
+              </motion.div>
+            ))}
           </motion.div>
+
+          {/* Empty State */}
+          {filteredEstablishments.length === 0 && (
+            <div className="text-center py-20">
+              <div className="text-6xl mb-4">🔍</div>
+              <h3 className="text-xl font-semibold text-white mb-2">
+                No encontramos resultados
+              </h3>
+              <p className="text-[#737373]">
+                Intenta con otra búsqueda o cambia los filtros
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[var(--border)] bg-[var(--background-secondary)] py-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+      <footer className="border-t border-[#1a1a1a] py-8">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">💈</span>
-              <span className="text-xl font-bold text-gradient">HairHub</span>
+              <span className="text-2xl">📖</span>
+              <span className="text-xl font-bold text-white">BookHub</span>
             </div>
-            <p className="text-sm text-[var(--foreground-muted)]">
-              © 2026 HairHub. Todos los derechos reservados.
+            <p className="text-sm text-[#525252]">
+              © 2026 BookHub. Todos los derechos reservados.
             </p>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,22 +14,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HairHub - Descubre los mejores servicios cerca de ti",
+  title: "BookHub - Reserva en tus lugares favoritos",
   description:
-    "Reserva citas en barberías, spas, salones de belleza, autolavados y más. Encuentra, compara y agenda servicios en tu ciudad.",
+    "Reserva citas en restaurantes, salones de belleza, gimnasios, spas, cafeterías y más. Encuentra, compara y agenda servicios en tu ciudad.",
   keywords: [
+    "reservas",
     "citas",
-    "barbería",
+    "restaurantes",
     "spa",
     "salón de belleza",
-    "reservas",
-    "autolavado",
-    "manicura",
+    "gimnasio",
+    "cafetería",
   ],
   openGraph: {
-    title: "HairHub - Reserva servicios de belleza y bienestar",
+    title: "BookHub - Reserva en tus lugares favoritos",
     description:
-      "La plataforma social para descubrir y reservar servicios de belleza, cuidado personal y más.",
+      "La plataforma para descubrir y reservar en tus establecimientos favoritos.",
     type: "website",
   },
 };
@@ -39,11 +40,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" className="dark" data-scroll-behavior="smooth">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
