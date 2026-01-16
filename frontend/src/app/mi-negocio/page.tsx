@@ -19,6 +19,7 @@ import {
 import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { api } from "@/lib/api";
+import { notify } from "@/lib/toast";
 import type { BusinessSummary, Business, Service, Worker, WorkerScheduleRequest } from "@/types";
 import "@/styles/mi-negocio.css";
 
@@ -54,12 +55,16 @@ function BusinessForm({
     try {
       if (business) {
         await api.updateBusiness(business.id, formData);
+        notify.success("Negocio actualizado correctamente");
       } else {
         await api.createBusiness(formData as any);
+        notify.success("¡Negocio creado exitosamente!");
       }
       onSave();
     } catch (err: any) {
-      setError(err.message || "Error al guardar el negocio");
+      const errorMessage = err.message || "Error al guardar el negocio";
+      setError(errorMessage);
+      notify.error(errorMessage);
     } finally {
       setLoading(false);
     }

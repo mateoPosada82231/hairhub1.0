@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import { Toaster } from "@/lib/toast";
 
 export const metadata: Metadata = {
   title: "BookHub - Reserva en tus lugares favoritos",
@@ -31,7 +32,10 @@ export default function RootLayout({
   return (
     <html lang="es" className="dark" data-scroll-behavior="smooth">
       <body className="antialiased font-sans">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          {children}
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

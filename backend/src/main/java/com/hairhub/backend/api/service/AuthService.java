@@ -5,11 +5,13 @@ import com.hairhub.backend.api.dto.auth.LoginRequest;
 import com.hairhub.backend.api.dto.auth.RefreshTokenRequest;
 import com.hairhub.backend.api.dto.auth.RegisterRequest;
 import com.hairhub.backend.api.exception.BadRequestException;
+import com.hairhub.backend.api.exception.ResourceNotFoundException;
 import com.hairhub.backend.api.exception.UnauthorizedException;
 import com.hairhub.backend.config.JwtService;
 import com.hairhub.backend.config.SecurityUser;
 import com.hairhub.backend.domain.user.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,19 +20,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
 
     @Value("${app.jwt.refresh-expiration-ms}")
     private long refreshExpirationMs;
+
+    @Value("${app.password-reset.expiration-minutes:60}")
+    private int passwordResetExpirationMinutes;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -141,6 +150,72 @@ public class AuthService {
     @Transactional
     public void logout(Long userId) {
         refreshTokenRepository.deleteByUserId(userId);
+    }
+
+    /**
+     * Initiates password reset process by generating a token and sending an email.
+     * For security, always returns success even if email doesn't exist.
+     */
+    @Transactional
+    public void initiatePasswordReset(String email) {
+        userRepository.findByEmail(email).ifPresent(user -> {
+            // Delete any existing reset tokens for this user
+            passwordResetTokenRepository.deleteByUserId(user.getId());
+
+            // Generate a new reset token
+            String token = UUID.randomUUID().toString();
+            
+            PasswordResetToken resetToken = PasswordResetToken.builder()
+                    .user(user)
+                    .token(token)
+                    .expiresAt(LocalDateTime.now().plusMinutes(passwordResetExpirationMinutes))
+                    .build();
+            
+            passwordResetTokenRepository.save(resetToken);
+
+            // Send password reset email
+            String userName = user.getProfile() != null ? user.getProfile().getFullName() : null;
+            emailService.sendPasswordResetEmail(user.getEmail(), token, userName);
+            
+            log.info("Password reset initiated for user: {}", user.getEmail());
+        });
+        // Silent fail if user not found (security best practice)
+    }
+
+    /**
+     * Validates a password reset token.
+     */
+    @Transactional(readOnly = true)
+    public boolean validateResetToken(String token) {
+        return passwordResetTokenRepository.findByTokenAndUsedFalse(token)
+                .map(PasswordResetToken::isValid)
+                .orElse(false);
+    }
+
+    /**
+     * Resets the user's password using a valid reset token.
+     */
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByTokenAndUsedFalse(token)
+                .orElseThrow(() -> new BadRequestException("Token de recuperación inválido o expirado"));
+
+        if (!resetToken.isValid()) {
+            throw new BadRequestException("Token de recuperación inválido o expirado");
+        }
+
+        User user = resetToken.getUser();
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Mark token as used
+        resetToken.setUsed(true);
+        passwordResetTokenRepository.save(resetToken);
+
+        // Invalidate all refresh tokens (force re-login)
+        refreshTokenRepository.deleteByUserId(user.getId());
+
+        log.info("Password reset completed for user: {}", user.getEmail());
     }
 
     private void saveRefreshToken(User user, String token) {

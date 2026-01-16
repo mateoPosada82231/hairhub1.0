@@ -27,6 +27,30 @@ app:
     secret: test-secret-key-for-testing-purposes-only-must-be-at-least-256-bits-long
     expiration-ms: 3600000
     refresh-expiration-ms: 604800000
+  
+  # Password Reset Configuration
+  password-reset:
+    expiration-minutes: 60
+  
+  # Email Configuration (disabled for tests)
+  email:
+    enabled: false
+    from: test@hairhub.com
+  
+  # Frontend URL for tests
+  frontend-url: http://localhost:3000
+  
+  # Rate Limiting (relaxed for tests)
+  rate-limit:
+    login:
+      requests: 100
+      duration-minutes: 1
+    password-reset:
+      requests: 100
+      duration-minutes: 1
+    general:
+      requests: 1000
+      duration-minutes: 1
 
 # Disable debug logging for tests
 logging:

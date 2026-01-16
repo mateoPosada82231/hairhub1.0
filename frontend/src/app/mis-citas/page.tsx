@@ -12,6 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { Appointment } from "@/types";
+import { notify } from "@/lib/toast";
 import "@/styles/mis-citas.css";
 
 const fadeIn = {
@@ -116,8 +117,11 @@ function MisCitasContent() {
       await loadAppointments();
       setShowCancelModal(false);
       setSelectedAppointment(null);
+      notify.success("Cita cancelada correctamente");
     } catch (err: any) {
-      setError(err.message || "Error al cancelar la cita");
+      const errorMessage = err.message || "Error al cancelar la cita";
+      setError(errorMessage);
+      notify.error(errorMessage);
     } finally {
       setCancellingId(null);
     }

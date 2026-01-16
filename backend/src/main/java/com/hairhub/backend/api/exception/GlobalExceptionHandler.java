@@ -100,6 +100,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleRateLimitExceeded(RateLimitExceededException ex) {
+        ErrorResponse error = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.TOO_MANY_REQUESTS.value())
+                .error("Too Many Requests")
+                .message(ex.getMessage())
+                .build();
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(error);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
         ErrorResponse error = ErrorResponse.builder()

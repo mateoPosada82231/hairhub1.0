@@ -7,6 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { PublicOnlyRoute } from "@/components/ProtectedRoute";
 import { ApiError } from "@/lib/api";
+import { notify } from "@/lib/toast";
 import "@/styles/auth.css";
 
 function LoginPageContent() {
@@ -36,10 +37,13 @@ function LoginPageContent() {
 
     try {
       await login(formData.email, formData.password);
+      notify.success("¡Bienvenido de nuevo!");
       router.push("/");
     } catch (err) {
       const apiError = err as ApiError;
-      setError(apiError.message || "Error al iniciar sesión. Verifica tus credenciales.");
+      const errorMessage = apiError.message || "Error al iniciar sesión. Verifica tus credenciales.";
+      setError(errorMessage);
+      notify.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

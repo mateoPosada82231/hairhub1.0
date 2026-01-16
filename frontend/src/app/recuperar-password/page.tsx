@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PublicOnlyRoute } from "@/components/ProtectedRoute";
+import { notify } from "@/lib/toast";
 import "@/styles/auth.css";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8082";
@@ -32,20 +33,26 @@ function RecoverPasswordContent() {
       });
 
       if (response.ok) {
-        setSuccess("Se ha enviado un enlace de recuperación a tu correo electrónico");
+        const successMessage = "Se ha enviado un enlace de recuperación a tu correo electrónico";
+        setSuccess(successMessage);
+        notify.success(successMessage);
         setTimeout(() => {
           router.push("/login");
         }, 3000);
-      } else if (response.status === 404 || response.status === 500) {
-        // Endpoint no implementado todavía
-        setError("Esta funcionalidad estará disponible próximamente");
+      } else if (response.status === 429) {
+        const errorMessage = "Demasiadas solicitudes. Por favor, espera un momento.";
+        setError(errorMessage);
+        notify.error(errorMessage);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        setError(errorData.message || "Error al procesar la solicitud");
+        const errorMessage = errorData.message || "Error al procesar la solicitud";
+        setError(errorMessage);
+        notify.error(errorMessage);
       }
     } catch {
-      // Si hay error de conexión o el endpoint no existe
-      setError("Esta funcionalidad estará disponible próximamente");
+      const errorMessage = "Error de conexión. Por favor, intenta de nuevo.";
+      setError(errorMessage);
+      notify.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
