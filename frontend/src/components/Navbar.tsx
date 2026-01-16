@@ -17,6 +17,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "@/context/AuthContext";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import "@/styles/home.css";
 
 interface NavItem {
   href: string;

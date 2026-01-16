@@ -59,6 +59,18 @@ class AppointmentsApiClient extends BaseApiClient {
     });
   }
 
+  async confirm(id: number): Promise<Appointment> {
+    return this.request<Appointment>(`/api/appointments/${id}/confirm`, {
+      method: "POST",
+    });
+  }
+
+  async complete(id: number): Promise<Appointment> {
+    return this.request<Appointment>(`/api/appointments/${id}/complete`, {
+      method: "POST",
+    });
+  }
+
   async getWorkerAvailability(
     workerId: number,
     date: string,

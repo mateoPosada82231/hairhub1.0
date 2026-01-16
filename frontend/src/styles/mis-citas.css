@@ -1,21 +1,23 @@
 /* ================================
-   Mis Citas Page Styles - Dark Mode
+   Mis Citas Page Styles
+   Elegant Black & White Theme
    ================================ */
 
 .mis-citas-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #0a0a0a 0%, #0d0d0d 100%);
+  background: linear-gradient(180deg, #0a0a0a 0%, #0d0d0d 50%, #0a0a0a 100%);
 }
 
 .mis-citas-container {
   max-width: 900px;
   margin: 0 auto;
   padding: 2rem 1rem;
+  animation: fadeInUp 0.6s ease-out;
 }
 
 /* Header */
 .mis-citas-header {
-    padding-top: 4rem;
+  padding-top: 4rem;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -25,10 +27,14 @@
 
 .mis-citas-title {
   font-size: 2rem;
-  font-weight: 700;
+  font-weight: 800;
   color: #ffffff;
   margin: 0 0 0.5rem 0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #ffffff 0%, #a3a3a3 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .mis-citas-subtitle {
@@ -39,18 +45,20 @@
 
 .btn-refresh {
   padding: 0.75rem;
-  background: #111111;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(17, 17, 17, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
   color: #737373;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
 }
 
 .btn-refresh:hover {
-  background: #1a1a1a;
+  background: rgba(26, 26, 26, 0.9);
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.15);
+  transform: rotate(90deg);
 }
 
 .btn-refresh:disabled {
@@ -72,17 +80,19 @@
 }
 
 .stat-card {
-  background: linear-gradient(135deg, #151515 0%, #111111 100%);
+  background: linear-gradient(135deg, rgba(21, 21, 21, 0.9) 0%, rgba(17, 17, 17, 0.8) 100%);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   padding: 1.25rem;
   text-align: center;
-  transition: all 0.2s ease;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
 }
 
 .stat-card:hover {
   border-color: rgba(255, 255, 255, 0.12);
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 30px rgba(255, 255, 255, 0.02);
 }
 
 .stat-card-icon {
@@ -719,5 +729,22 @@
 
   .modal-actions {
     flex-direction: column;
+  }
+}
+
+/* ============ ANIMATIONS ============ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

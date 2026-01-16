@@ -79,5 +79,7 @@ export const api = {
   getUpcomingWorkerAppointments: appointmentsApi.getUpcomingForWorker.bind(appointmentsApi),
   updateAppointment: appointmentsApi.update.bind(appointmentsApi),
   cancelAppointment: appointmentsApi.cancel.bind(appointmentsApi),
+  confirmAppointment: appointmentsApi.confirm.bind(appointmentsApi),
+  completeAppointment: appointmentsApi.complete.bind(appointmentsApi),
   getWorkerAvailability: appointmentsApi.getWorkerAvailability.bind(appointmentsApi),
 };

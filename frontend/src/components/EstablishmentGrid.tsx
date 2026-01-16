@@ -48,14 +48,19 @@ function EstablishmentGridComponent({
         {/* Grid */}
         {businesses.length > 0 ? (
           <div className="establishments-grid">
-            {businesses.map((business) => (
-              <EstablishmentCard
+            {businesses.map((business, index) => (
+              <div
                 key={business.id}
-                business={business}
-                isFavorite={isFavorite(business.id)}
-                onToggleFavorite={onToggleFavorite}
-                onViewDetails={onViewDetails}
-              />
+                className="animate-fadeInUp"
+                style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}
+              >
+                <EstablishmentCard
+                  business={business}
+                  isFavorite={isFavorite(business.id)}
+                  onToggleFavorite={onToggleFavorite}
+                  onViewDetails={onViewDetails}
+                />
+              </div>
             ))}
           </div>
         ) : (
