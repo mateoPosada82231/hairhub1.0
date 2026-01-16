@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-import { Toaster } from "@/lib/toast";
+import { Toaster } from "@/components/ui/toast";
 
 export const metadata: Metadata = {
   title: "BookHub - Reserva en tus lugares favoritos",

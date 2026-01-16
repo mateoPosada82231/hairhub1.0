@@ -4,7 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { PublicOnlyRoute } from "@/components/ProtectedRoute";
-import { notify } from "@/lib/toast";
+import { notify } from "@/components/ui/toast";
 import "@/styles/auth.css";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8082";
@@ -158,7 +158,7 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050d0c] flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4">
       <div className="recover-password-container">
         <div className="logo">
           <h1>BOOKHUB</h1>

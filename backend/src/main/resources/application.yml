@@ -56,6 +56,9 @@ app:
     expiration-ms: 86400000  # 24 hours
     refresh-expiration-ms: 604800000  # 7 days
   
+  # Development Mode - shows reset links in API response instead of sending email
+  dev-mode: ${DEV_MODE:true}
+  
   # Password Reset Configuration
   password-reset:
     expiration-minutes: 60  # 1 hour

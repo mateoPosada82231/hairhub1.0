@@ -19,7 +19,7 @@ import {
 import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { api } from "@/lib/api";
-import { notify } from "@/lib/toast";
+import { notify } from "@/components/ui/toast";
 import type { BusinessSummary, Business, Service, Worker, WorkerScheduleRequest } from "@/types";
 import "@/styles/mi-negocio.css";
 

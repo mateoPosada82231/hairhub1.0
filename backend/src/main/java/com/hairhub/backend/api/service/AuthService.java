@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -40,6 +41,12 @@ public class AuthService {
 
     @Value("${app.password-reset.expiration-minutes:60}")
     private int passwordResetExpirationMinutes;
+
+    @Value("${app.frontend-url:http://localhost:3000}")
+    private String frontendUrl;
+
+    @Value("${app.dev-mode:true}")
+    private boolean devMode;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -155,31 +162,50 @@ public class AuthService {
     /**
      * Initiates password reset process by generating a token and sending an email.
      * For security, always returns success even if email doesn't exist.
+     * In dev mode, returns the reset link directly.
+     * 
+     * @return Optional containing the reset link in dev mode, empty in production
      */
     @Transactional
-    public void initiatePasswordReset(String email) {
-        userRepository.findByEmail(email).ifPresent(user -> {
-            // Delete any existing reset tokens for this user
-            passwordResetTokenRepository.deleteByUserId(user.getId());
+    public Optional<String> initiatePasswordReset(String email) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        
+        if (userOpt.isEmpty()) {
+            // Silent fail if user not found (security best practice)
+            return Optional.empty();
+        }
+        
+        User user = userOpt.get();
+        
+        // Delete any existing reset tokens for this user
+        passwordResetTokenRepository.deleteByUserId(user.getId());
 
-            // Generate a new reset token
-            String token = UUID.randomUUID().toString();
-            
-            PasswordResetToken resetToken = PasswordResetToken.builder()
-                    .user(user)
-                    .token(token)
-                    .expiresAt(LocalDateTime.now().plusMinutes(passwordResetExpirationMinutes))
-                    .build();
-            
-            passwordResetTokenRepository.save(resetToken);
+        // Generate a new reset token
+        String token = UUID.randomUUID().toString();
+        
+        PasswordResetToken resetToken = PasswordResetToken.builder()
+                .user(user)
+                .token(token)
+                .expiresAt(LocalDateTime.now().plusMinutes(passwordResetExpirationMinutes))
+                .build();
+        
+        passwordResetTokenRepository.save(resetToken);
 
-            // Send password reset email
-            String userName = user.getProfile() != null ? user.getProfile().getFullName() : null;
-            emailService.sendPasswordResetEmail(user.getEmail(), token, userName);
-            
-            log.info("Password reset initiated for user: {}", user.getEmail());
-        });
-        // Silent fail if user not found (security best practice)
+        String resetLink = frontendUrl + "/reset-password?token=" + token;
+
+        // Send password reset email
+        String userName = user.getProfile() != null ? user.getProfile().getFullName() : null;
+        emailService.sendPasswordResetEmail(user.getEmail(), token, userName);
+        
+        log.info("Password reset initiated for user: {}", user.getEmail());
+        
+        // In dev mode, return the reset link
+        if (devMode) {
+            log.info("DEV MODE - Reset link: {}", resetLink);
+            return Optional.of(resetLink);
+        }
+        
+        return Optional.empty();
     }
 
     /**

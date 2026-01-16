@@ -7,7 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { PublicOnlyRoute } from "@/components/ProtectedRoute";
 import { ApiError } from "@/lib/api";
-import { notify } from "@/lib/toast";
+import { notify } from "@/components/ui/toast";
 import "@/styles/auth.css";
 
 function LoginPageContent() {

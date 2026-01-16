@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { api } from "@/lib/api";
-import { notify } from "@/lib/toast";
+import { notify } from "@/components/ui/toast";
 import type { BusinessSummary, Business, Service, Worker } from "@/types";
 
 interface UseBusinessManagementReturn {

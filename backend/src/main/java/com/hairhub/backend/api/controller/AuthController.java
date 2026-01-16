@@ -81,7 +81,16 @@ public class AuthController {
                     "Demasiadas solicitudes de recuperación. Por favor, espera 1 hora.");
         }
         
-        authService.initiatePasswordReset(request.getEmail());
+        var resetLink = authService.initiatePasswordReset(request.getEmail());
+        
+        // In dev mode, include the reset link in the response
+        if (resetLink.isPresent()) {
+            return ResponseEntity.ok(MessageResponse.builder()
+                    .message("Modo desarrollo: usa el enlace de abajo para restablecer tu contraseña")
+                    .devResetLink(resetLink.get())
+                    .build());
+        }
+        
         return ResponseEntity.ok(new MessageResponse(
                 "Si el correo está registrado, recibirás un enlace de recuperación"));
     }

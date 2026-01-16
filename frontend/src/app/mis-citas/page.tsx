@@ -12,7 +12,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { Appointment } from "@/types";
-import { notify } from "@/lib/toast";
+import { notify } from "@/components/ui/toast";
 import "@/styles/mis-citas.css";
 
 const fadeIn = {

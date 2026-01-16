@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { api } from "@/lib/api";
-import { notify } from "@/lib/toast";
-import type { Business } from "@/types";
+import { notify } from "@/components/ui/toast";
+import type { Business, CreateBusinessRequest } from "@/types";
 
 interface BusinessFormData {
   name: string;
@@ -44,12 +44,12 @@ export function BusinessForm({ business, onSave, onCancel }: BusinessFormProps) 
         await api.updateBusiness(business.id, formData);
         notify.success("Negocio actualizado correctamente");
       } else {
-        await api.createBusiness(formData as any);
+        await api.createBusiness(formData as CreateBusinessRequest);
         notify.success("¡Negocio creado exitosamente!");
       }
       onSave();
-    } catch (err: any) {
-      const errorMessage = err.message || "Error al guardar el negocio";
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Error al guardar el negocio";
       setError(errorMessage);
       notify.error(errorMessage);
     } finally {

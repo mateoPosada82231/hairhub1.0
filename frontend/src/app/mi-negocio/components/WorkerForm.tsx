@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { api } from "@/lib/api";
-import { notify } from "@/lib/toast";
+import { notify } from "@/components/ui/toast";
 
 interface WorkerFormData {
   email: string;
