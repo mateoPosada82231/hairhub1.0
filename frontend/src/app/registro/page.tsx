@@ -72,7 +72,7 @@ function RegisterPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050d0c] flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8">
       <div className="register-container">
         <div className="logo">
           <h1>BOOKHUB</h1>

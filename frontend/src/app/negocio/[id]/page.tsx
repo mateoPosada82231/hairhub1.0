@@ -384,7 +384,7 @@ function NegocioContent() {
                                 {service.duration_minutes} min
                               </span>
                               <span className="service-price">
-                                €{service.price.toFixed(2)}
+                                ${service.price.toLocaleString("es-CO")}
                               </span>
                             </div>
                           </div>
@@ -519,7 +519,7 @@ function NegocioContent() {
                             </span>
                           </div>
                           <span className="summary-price">
-                            €{selectedService?.price.toFixed(2)}
+                            ${selectedService?.price.toLocaleString("es-CO")}
                           </span>
                         </div>
 
@@ -569,7 +569,7 @@ function NegocioContent() {
                       <div className="booking-total">
                         <span>Total</span>
                         <span className="total-price">
-                          €{selectedService?.price.toFixed(2)}
+                          ${selectedService?.price.toLocaleString("es-CO")}
                         </span>
                       </div>
                 </div>

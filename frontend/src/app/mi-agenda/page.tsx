@@ -147,7 +147,7 @@ function AppointmentCard({
         <div className="price-info">
           <span className="price-label">Precio</span>
           <span className="price-value">
-            €{(appointment.service_price ?? appointment.total_price)?.toFixed(2) || "0.00"}
+            ${(appointment.service_price ?? appointment.total_price)?.toLocaleString("es-CO") || "0"}
           </span>
         </div>
       </div>

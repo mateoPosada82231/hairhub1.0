@@ -841,7 +841,7 @@ function MiNegocioContent() {
                                   </span>
                                   <span>
                                     <FontAwesomeIcon icon={faDollarSign} />
-                                    ${service.price.toLocaleString()}
+                                    ${service.price.toLocaleString("es-CO")}
                                   </span>
                                 </div>
                               </div>
