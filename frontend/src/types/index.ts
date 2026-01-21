@@ -237,3 +237,33 @@ export interface TimeSlot {
     end_time: string;
     available: boolean;
 }
+
+// Review types
+export interface Review {
+    id: number;
+    rating: number;
+    comment?: string;
+    appointment_id: number;
+    client_name: string;
+    client_avatar_url?: string;
+    service_name: string;
+    created_at: string;
+}
+
+export interface CreateReviewRequest {
+    rating: number;
+    comment?: string;
+}
+
+// Business Image types (Gallery)
+export interface BusinessImage {
+    id: number;
+    image_url: string;
+    caption?: string;
+    display_order: number;
+}
+
+export interface AddBusinessImageRequest {
+    image_url: string;
+    caption?: string;
+}

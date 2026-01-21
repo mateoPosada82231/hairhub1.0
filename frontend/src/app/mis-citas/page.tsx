@@ -4,16 +4,18 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Calendar, Clock, MapPin, User, ChevronRight, Store, Scissors,
-  X, AlertCircle, CheckCircle, Loader2, RefreshCw, CalendarDays, History
+  X, AlertCircle, CheckCircle, Loader2, RefreshCw, CalendarDays, History, Star
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import { Appointment } from "@/types";
+import { Appointment, CreateReviewRequest } from "@/types";
 import { notify } from "@/components/ui/toast";
+import { ReviewForm } from "@/components/ReviewForm";
 import "@/styles/mis-citas.css";
+import "@/styles/reviews.css";
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -77,6 +79,10 @@ function MisCitasContent() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+  
+  // Review state
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewAppointment, setReviewAppointment] = useState<Appointment | null>(null);
 
   const loadAppointments = useCallback(async () => {
     if (!user) return;
@@ -106,6 +112,21 @@ function MisCitasContent() {
     setSelectedAppointment(appointment);
     setCancelReason("");
     setShowCancelModal(true);
+  };
+
+  const handleReviewClick = (appointment: Appointment) => {
+    setReviewAppointment(appointment);
+    setShowReviewModal(true);
+  };
+
+  const handleSubmitReview = async (data: CreateReviewRequest) => {
+    if (!reviewAppointment) return;
+    
+    await api.createReview(reviewAppointment.id, data);
+    await loadAppointments();
+    setShowReviewModal(false);
+    setReviewAppointment(null);
+    notify.success("¡Reseña enviada correctamente!");
   };
 
   const handleConfirmCancel = async () => {
@@ -315,6 +336,23 @@ function MisCitasContent() {
                             ${(appointment.total_price || appointment.service_price || 0).toLocaleString("es-CO")}
                           </div>
                           <div className="appointment-actions">
+                            {/* Review button for completed appointments without review */}
+                            {appointment.status === "COMPLETED" && !appointment.has_review && (
+                              <button 
+                                onClick={() => handleReviewClick(appointment)}
+                                className="btn-review"
+                              >
+                                <Star size={16} />
+                                Dejar reseña
+                              </button>
+                            )}
+                            {/* Badge for already reviewed appointments */}
+                            {appointment.status === "COMPLETED" && appointment.has_review && (
+                              <span className="review-badge">
+                                <CheckCircle size={14} />
+                                Reseña enviada
+                              </span>
+                            )}
                             {activeTab === "upcoming" && appointment.status !== "CANCELLED" && (
                               <button 
                                 onClick={() => handleCancelClick(appointment)}
@@ -452,6 +490,22 @@ function MisCitasContent() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Review Modal */}
+      <ReviewForm
+        isOpen={showReviewModal}
+        onClose={() => {
+          setShowReviewModal(false);
+          setReviewAppointment(null);
+        }}
+        onSubmit={handleSubmitReview}
+        appointmentInfo={reviewAppointment ? {
+          serviceName: reviewAppointment.service_name,
+          businessName: reviewAppointment.business_name,
+          workerName: reviewAppointment.worker_name,
+          date: reviewAppointment.start_time,
+        } : undefined}
+      />
     </div>
   );
 }

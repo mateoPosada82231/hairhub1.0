@@ -15,13 +15,15 @@ import {
   faSpinner,
   faScissors,
   faDollarSign,
+  faImage,
 } from "@fortawesome/free-solid-svg-icons";
 import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { api } from "@/lib/api";
 import { notify } from "@/components/ui/toast";
-import type { BusinessSummary, Business, Service, Worker, WorkerScheduleRequest } from "@/types";
+import type { BusinessSummary, Business, Service, Worker, WorkerScheduleRequest, BusinessImage } from "@/types";
 import "@/styles/mi-negocio.css";
+import "@/styles/reviews.css";
 
 const DAY_NAMES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
@@ -537,6 +539,24 @@ function MiNegocioContent() {
   // Tab activo
   const [activeTab, setActiveTab] = useState<"overview" | "services" | "workers">("overview");
 
+  // Estados de galería
+  const [galleryImages, setGalleryImages] = useState<BusinessImage[]>([]);
+  const [showAddImageForm, setShowAddImageForm] = useState(false);
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const [newImageCaption, setNewImageCaption] = useState("");
+  const [addingImage, setAddingImage] = useState(false);
+  const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
+
+  // Cargar imágenes de galería
+  const loadGalleryImages = useCallback(async (businessId: number) => {
+    try {
+      const images = await api.getBusinessImages(businessId);
+      setGalleryImages(images);
+    } catch (err: any) {
+      console.error("Error loading gallery images:", err);
+    }
+  }, []);
+
   // Cargar detalles de un negocio
   const loadBusinessDetails = useCallback(async (id: number) => {
     try {
@@ -548,10 +568,11 @@ function MiNegocioContent() {
       setSelectedBusiness(business);
       setServices(servicesData);
       setWorkers(workersData);
+      loadGalleryImages(id);
     } catch (err: any) {
       console.error("Error loading business details:", err);
     }
-  }, []);
+  }, [loadGalleryImages]);
 
   // Cargar mis negocios
   const loadBusinesses = useCallback(async () => {
@@ -628,6 +649,45 @@ function MiNegocioContent() {
       loadBusinessDetails(selectedBusiness.id);
     } catch (err: any) {
       alert(err.message || "Error al eliminar trabajador");
+    }
+  };
+
+  // Handlers de galería
+  const handleAddImage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBusiness || !newImageUrl.trim()) return;
+
+    setAddingImage(true);
+    try {
+      await api.addBusinessImage(selectedBusiness.id, {
+        image_url: newImageUrl.trim(),
+        caption: newImageCaption.trim() || undefined,
+      });
+      await loadGalleryImages(selectedBusiness.id);
+      setNewImageUrl("");
+      setNewImageCaption("");
+      setShowAddImageForm(false);
+      notify.success("Imagen agregada correctamente");
+    } catch (err: any) {
+      notify.error(err.message || "Error al agregar imagen");
+    } finally {
+      setAddingImage(false);
+    }
+  };
+
+  const handleDeleteImage = async (imageId: number) => {
+    if (!selectedBusiness) return;
+    if (!confirm("¿Estás seguro de eliminar esta imagen?")) return;
+
+    setDeletingImageId(imageId);
+    try {
+      await api.removeBusinessImage(selectedBusiness.id, imageId);
+      await loadGalleryImages(selectedBusiness.id);
+      notify.success("Imagen eliminada correctamente");
+    } catch (err: any) {
+      notify.error(err.message || "Error al eliminar imagen");
+    } finally {
+      setDeletingImageId(null);
     }
   };
 
@@ -800,6 +860,102 @@ function MiNegocioContent() {
                         <h3>Información de contacto</h3>
                         <p><strong>Dirección:</strong> {selectedBusiness.address}, {selectedBusiness.city}</p>
                         <p><strong>Teléfono:</strong> {selectedBusiness.phone || "No especificado"}</p>
+                      </div>
+
+                      {/* Gallery Management */}
+                      <div className="overview-section gallery-management">
+                        <div className="gallery-management-header">
+                          <h4>
+                            <FontAwesomeIcon icon={faImage} />
+                            Galería de imágenes
+                          </h4>
+                          <button
+                            onClick={() => setShowAddImageForm(!showAddImageForm)}
+                            className="btn-add-image"
+                          >
+                            <FontAwesomeIcon icon={faPlus} />
+                            Agregar imagen
+                          </button>
+                        </div>
+
+                        {/* Add Image Form */}
+                        {showAddImageForm && (
+                          <form onSubmit={handleAddImage} className="add-image-form">
+                            <div className="form-row">
+                              <div className="form-group">
+                                <label>URL de la imagen</label>
+                                <input
+                                  type="url"
+                                  value={newImageUrl}
+                                  onChange={(e) => setNewImageUrl(e.target.value)}
+                                  placeholder="https://..."
+                                  required
+                                />
+                              </div>
+                              <div className="form-group">
+                                <label>Leyenda (opcional)</label>
+                                <input
+                                  type="text"
+                                  value={newImageCaption}
+                                  onChange={(e) => setNewImageCaption(e.target.value)}
+                                  placeholder="Descripción de la imagen"
+                                  maxLength={255}
+                                />
+                              </div>
+                            </div>
+                            <div className="form-actions">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowAddImageForm(false);
+                                  setNewImageUrl("");
+                                  setNewImageCaption("");
+                                }}
+                                className="btn-secondary"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={addingImage || !newImageUrl.trim()}
+                                className="btn-primary"
+                              >
+                                {addingImage ? "Agregando..." : "Agregar"}
+                              </button>
+                            </div>
+                          </form>
+                        )}
+
+                        {/* Gallery Grid */}
+                        <div className="gallery-management-grid">
+                          {galleryImages.length === 0 ? (
+                            <div className="gallery-empty">
+                              <FontAwesomeIcon icon={faImage} />
+                              <p>No hay imágenes en la galería</p>
+                            </div>
+                          ) : (
+                            galleryImages.map((image) => (
+                              <div key={image.id} className="gallery-management-item">
+                                <img src={image.image_url} alt={image.caption || "Imagen"} />
+                                {image.caption && (
+                                  <div className="gallery-item-caption">{image.caption}</div>
+                                )}
+                                <button
+                                  onClick={() => handleDeleteImage(image.id)}
+                                  disabled={deletingImageId === image.id}
+                                  className="gallery-item-delete"
+                                  title="Eliminar imagen"
+                                >
+                                  {deletingImageId === image.id ? (
+                                    <FontAwesomeIcon icon={faSpinner} spin />
+                                  ) : (
+                                    <FontAwesomeIcon icon={faTrash} />
+                                  )}
+                                </button>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}

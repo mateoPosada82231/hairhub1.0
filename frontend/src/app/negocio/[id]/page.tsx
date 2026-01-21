@@ -22,8 +22,11 @@ import { Navbar } from "@/components/Navbar";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
-import { Business, Service, Worker, WorkerSchedule } from "@/types";
+import { Business, Service, Worker, WorkerSchedule, Review } from "@/types";
+import { ImageGallery } from "@/components/ImageGallery";
+import { ReviewList, ReviewsSummary } from "@/components/ReviewList";
 import "@/styles/negocio.css";
+import "@/styles/reviews.css";
 
 // Booking steps
 type BookingStep = "service" | "worker" | "datetime" | "confirm";
@@ -103,6 +106,10 @@ function NegocioContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Reviews state
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+
   // Booking state
   const [step, setStep] = useState<BookingStep>("service");
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -140,6 +147,25 @@ function NegocioContent() {
 
     if (businessId) {
       loadBusinessData();
+    }
+  }, [businessId]);
+
+  // Load reviews
+  useEffect(() => {
+    const loadReviews = async () => {
+      try {
+        setReviewsLoading(true);
+        const reviewsData = await api.getBusinessReviews(businessId);
+        setReviews(reviewsData);
+      } catch (err) {
+        console.error("Error loading reviews:", err);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    if (businessId) {
+      loadReviews();
     }
   }, [businessId]);
 
@@ -629,6 +655,26 @@ function NegocioContent() {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Gallery section */}
+          {business.gallery_images && business.gallery_images.length > 0 && (
+            <ImageGallery 
+              images={business.gallery_images} 
+              businessName={business.name} 
+            />
+          )}
+
+          {/* Reviews section */}
+          <div className="reviews-section">
+            <div className="reviews-section-header">
+              <h3>Reseñas</h3>
+              <ReviewsSummary 
+                averageRating={business.average_rating} 
+                totalReviews={business.total_reviews} 
+              />
+            </div>
+            <ReviewList reviews={reviews} loading={reviewsLoading} />
           </div>
         </div>
       </main>

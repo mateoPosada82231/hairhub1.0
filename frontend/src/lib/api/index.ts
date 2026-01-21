@@ -12,6 +12,7 @@ export { workersApi } from "./workers";
 export { appointmentsApi } from "./appointments";
 export { userApi } from "./user";
 export { favoritesApi } from "./favorites";
+export { reviewsApi, businessImagesApi } from "./reviews";
 
 // Re-export for backward compatibility with existing code that imports from api.ts
 import { authApi } from "./auth";
@@ -21,6 +22,7 @@ import { workersApi } from "./workers";
 import { appointmentsApi } from "./appointments";
 import { userApi } from "./user";
 import { favoritesApi } from "./favorites";
+import { reviewsApi, businessImagesApi } from "./reviews";
 
 // Unified API object for backward compatibility
 export const api = {
@@ -82,4 +84,13 @@ export const api = {
   confirmAppointment: appointmentsApi.confirm.bind(appointmentsApi),
   completeAppointment: appointmentsApi.complete.bind(appointmentsApi),
   getWorkerAvailability: appointmentsApi.getWorkerAvailability.bind(appointmentsApi),
+
+  // Reviews
+  getBusinessReviews: reviewsApi.getBusinessReviews.bind(reviewsApi),
+  createReview: reviewsApi.createReview.bind(reviewsApi),
+
+  // Business Images (Gallery)
+  getBusinessImages: businessImagesApi.getBusinessImages.bind(businessImagesApi),
+  addBusinessImage: businessImagesApi.addImage.bind(businessImagesApi),
+  removeBusinessImage: businessImagesApi.removeImage.bind(businessImagesApi),
 };

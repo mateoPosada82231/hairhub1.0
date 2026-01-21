@@ -27,6 +27,9 @@ public class BusinessImage {
     @Column(name = "image_url", nullable = false, length = 500)
     private String imageUrl;
 
+    @Column(name = "caption", length = 255)
+    private String caption;
+
     @Builder.Default
     @Column(name = "display_order")
     private Integer displayOrder = 0;
