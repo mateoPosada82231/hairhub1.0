@@ -77,8 +77,15 @@ public class WorkerService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario con email " + request.getEmail() + " no encontrado"));
 
-        // Verify user has WORKER role or upgrade
-        if (user.getRole() != UserRole.WORKER) {
+        // Validate user role - only CLIENT can become WORKER
+        // OWNER cannot be added as worker to prevent conflicts
+        if (user.getRole() == UserRole.OWNER) {
+            throw new BadRequestException("No se puede agregar como trabajador a un usuario que es dueño de un negocio. " +
+                    "El usuario debe tener rol de cliente.");
+        }
+
+        // Upgrade CLIENT to WORKER role
+        if (user.getRole() == UserRole.CLIENT) {
             user.setRole(UserRole.WORKER);
             userRepository.save(user);
         }
