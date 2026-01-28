@@ -1,4 +1,4 @@
-# 💈 HairHub 2.0
+# 📖 BookHub
 
 > Una plataforma estilo red social para descubrir y reservar servicios de belleza, bienestar y más.
 
@@ -28,6 +28,7 @@ hairhub1.0/
 ## 🚀 Tecnologías
 
 ### Backend
+
 - **Java 21** + **Spring Boot 3.5**
 - **Spring Security** (JWT Authentication)
 - **Spring Data JPA** (PostgreSQL)
@@ -35,6 +36,7 @@ hairhub1.0/
 - **Docker Compose** (Base de datos)
 
 ### Frontend
+
 - **Next.js 16** (App Router, SSR)
 - **TypeScript** (Tipado estricto)
 - **Tailwind CSS** (Estilos)
@@ -44,46 +46,53 @@ hairhub1.0/
 ## 📦 Inicio Rápido
 
 ### Requisitos
+
 - Node.js 18+
 - Java 21+
 - Docker Desktop
 
 ### 1. Base de Datos
+
 ```bash
 docker-compose up -d
 ```
 
 ### 2. Backend
+
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
+
 Backend disponible en: `http://localhost:8080`
 
 ### 3. Frontend
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+
 Frontend disponible en: `http://localhost:3000`
 
 ## 📱 Categorías de Negocio
 
-| Categoría | Emoji | Descripción |
-|-----------|-------|-------------|
-| Barbería | ✂️ | Cortes, afeitados, tratamientos capilares |
-| Salón de Belleza | 💇‍♀️ | Peinados, coloración, tratamientos |
-| Manicura/Pedicura | 💅 | Uñas, nail art, spa de manos/pies |
-| Spa | 🧖 | Masajes, tratamientos corporales |
-| Autolavado | 🚗 | Lavado de vehículos |
-| Peluquería de Mascotas | 🐕 | Grooming, baño, corte |
-| Estudio de Tatuajes | 🎨 | Tatuajes, piercings |
-| Otro | 📍 | Otros servicios |
+| Categoría              | Emoji | Descripción                               |
+| ---------------------- | ----- | ----------------------------------------- |
+| Barbería               | ✂️    | Cortes, afeitados, tratamientos capilares |
+| Salón de Belleza       | 💇‍♀️    | Peinados, coloración, tratamientos        |
+| Manicura/Pedicura      | 💅    | Uñas, nail art, spa de manos/pies         |
+| Spa                    | 🧖    | Masajes, tratamientos corporales          |
+| Autolavado             | 🚗    | Lavado de vehículos                       |
+| Peluquería de Mascotas | 🐕    | Grooming, baño, corte                     |
+| Estudio de Tatuajes    | 🎨    | Tatuajes, piercings                       |
+| Otro                   | 📍    | Otros servicios                           |
 
 ## 🗄️ Modelo de Datos
 
 ### Entidades Principales
+
 - **User**: Usuarios del sistema (email, rol, perfil)
 - **Business**: Negocios/establecimientos
 - **Service**: Servicios ofrecidos por cada negocio
@@ -91,19 +100,20 @@ Frontend disponible en: `http://localhost:3000`
 - **Appointment**: Citas agendadas
 
 ### Roles de Usuario
+
 - `OWNER`: Dueño de negocio
 - `WORKER`: Trabajador/empleado
 - `CLIENT`: Cliente
 
 ## 📞 API Endpoints (WIP)
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/health` | Estado del servidor |
-| GET | `/api/businesses/search` | Buscar negocios |
-| GET | `/api/businesses/{id}` | Detalle de negocio |
-| POST | `/api/auth/register` | Registro de usuario |
-| POST | `/api/auth/login` | Inicio de sesión |
+| Método | Endpoint                 | Descripción         |
+| ------ | ------------------------ | ------------------- |
+| GET    | `/api/health`            | Estado del servidor |
+| GET    | `/api/businesses/search` | Buscar negocios     |
+| GET    | `/api/businesses/{id}`   | Detalle de negocio  |
+| POST   | `/api/auth/register`     | Registro de usuario |
+| POST   | `/api/auth/login`        | Inicio de sesión    |
 
 ## 📄 Licencia
 
