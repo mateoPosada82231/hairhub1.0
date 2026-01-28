@@ -1,4 +1,4 @@
-# 💈 HairHub 2.0
+# 📖 BookHub
 
 > Una plataforma estilo red social para descubrir y reservar servicios de belleza, bienestar y más.
 
